@@ -55,9 +55,9 @@ class DirectionalGhost( GhostAgent ):
         legalActions = state.getLegalActions( self.index )
         pos = state.getGhostPosition( self.index )
         isScared = ghostState.scaredTimer > 0
-
-        speed = 1
-        if isScared: speed = 0.5
+        speed_rnd=lambda: random.uniform(0.2,1.0)
+        speed = speed_rnd()
+        if isScared: speed = speed_rnd()*0.5
 
         actionVectors = [Actions.directionToVector( a, speed ) for a in legalActions]
         newPositions = [( pos[0]+a[0], pos[1]+a[1] ) for a in actionVectors]

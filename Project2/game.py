@@ -24,6 +24,7 @@ from util import *
 import time, os
 import traceback
 import sys
+import PRM
 
 #######################
 # Parts worth reading #
@@ -334,9 +335,10 @@ class Actions:
         x, y = config.pos
         x_int, y_int = int(x + 0.5), int(y + 0.5)
 
+        # Arbel: Ive commented this out in order to allow the agent to act in continuous space
         # In between grid points, all agents must continue straight
-        if (abs(x - x_int) + abs(y - y_int)  > Actions.TOLERANCE):
-            return [config.getDirection()]
+        # if (abs(x - x_int) + abs(y - y_int)  > Actions.TOLERANCE):
+        #     return [config.getDirection()]
 
         for dir, vec in Actions._directionsAsList:
             dx, dy = vec
@@ -727,3 +729,52 @@ class Game:
                     self.unmute()
                     return
         self.display.finish()
+
+####################################
+# Arbel: PRM
+####################################
+class PRM_agent:
+    """
+    each agent  have its own PRM
+
+    """
+    def __init__(self, layout,num_samples):
+        self.sampled_points = []
+        self.sample_space(layout.width,layout.height,num_samples)
+        distance_fn=manhattanDistance
+        collision_fn=create_collision_fn(layout)
+
+    def sample_space(self, x,y,n):
+        for i in range(n):
+            self.sampled_points.append((random.uniform(0,x), random.uniform(0,y)))
+
+def create_collision_fn(layout):  #(state, start,end):
+    walls = layout.walls
+    def collision_fn(q):
+        '''
+        Returns True if there is a collision between the start and end points
+        the PRM.py expects collision functions to accept q as argument and return True if there is a collision
+        #TODO i'm not sure what q is supposed to be...
+        '''
+        start,end = q # ????
+        x1, y1 = start
+        x2, y2 = end
+        dx = x2 - x1
+        dy = y2 - y1
+        if dx == 0:
+            for y in range(int(min(y1, y2)), int(max(y1, y2))):
+                if walls[int(x1)][y]:
+                    return True
+        elif dy == 0:
+            for x in range(int(min(x1, x2)), int(max(x1, x2))):
+                if walls[x][int(y1)]:
+                    return True
+    return collision_fn
+
+def extend_function(q1,q2):
+    """
+    :param q1: start point
+    :param q2: end point
+    :return: a list of points between q1 and q2
+    """
+

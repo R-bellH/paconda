@@ -76,6 +76,10 @@ LASER_SIZE = 0.02
 CAPSULE_COLOR = formatColor(1,1,1)
 CAPSULE_SIZE = 0.25
 
+# slow pills graphics
+SLOW_PILL_COLOR = formatColor(0,0,1)
+SLOW_PILL_SIZE = 0.25
+
 # Drawing walls
 WALL_RADIUS = 0.15
 
@@ -206,6 +210,7 @@ class PacmanGraphics:
         self.drawWalls(layout.walls)
         self.food = self.drawFood(layout.food)
         self.capsules = self.drawCapsules(layout.capsules)
+        self.slowpills = self.drawSlowPills(layout.slowpills)
         refresh()
 
     def drawAgentObjects(self, state):
@@ -553,6 +558,17 @@ class PacmanGraphics:
             capsuleImages[capsule] = dot
         return capsuleImages
 
+    def drawSlowPills(self, pills ):
+        pillImages = {}
+        for pill in pills:
+            ( screen_x, screen_y ) = self.to_screen(pill)
+            dot = circle( (screen_x, screen_y),
+                              SLOW_PILL_SIZE * self.gridSize,
+                              outlineColor = SLOW_PILL_COLOR,
+                              fillColor = SLOW_PILL_COLOR,
+                              width = 1)
+            pillImages[pill] = dot
+        return pillImages
     def removeFood(self, cell, foodImages ):
         x, y = cell
         remove_from_screen(foodImages[x][y])

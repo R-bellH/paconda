@@ -279,6 +279,7 @@ class ClassicGameRules:
         game.state = initState
         self.initialState = initState.deepCopy()
         self.quiet = quiet
+
         return game
 
     def process(self, state, game):
@@ -320,12 +321,13 @@ class ClassicGameRules:
     def getMaxTimeWarnings(self, agentIndex):
         return 0
 
+PACMAN_SPEED = lambda: random.uniform(0.8,1.0)  #.5
+
 class PacmanRules:
     """
     These functions govern how pacman interacts with his environment under
     the classic game rules.
     """
-    PACMAN_SPEED=1
 
     def getLegalActions( state ):
         """
@@ -345,7 +347,7 @@ class PacmanRules:
         pacmanState = state.data.agentStates[0]
 
         # Update Configuration
-        vector = Actions.directionToVector( action, PacmanRules.PACMAN_SPEED )
+        vector = Actions.directionToVector( action, PACMAN_SPEED() )
         pacmanState.configuration = pacmanState.configuration.generateSuccessor( vector )
 
         # Eat
@@ -378,11 +380,11 @@ class PacmanRules:
                 state.data.agentStates[index].scaredTimer = SCARED_TIME
     consume = staticmethod( consume )
 
+GHOST_SPEED=lambda: random.uniform(0.8,1.0) #.5
 class GhostRules:
     """
     These functions dictate how ghosts interact with their environment.
     """
-    GHOST_SPEED=1.0
     def getLegalActions( state, ghostIndex ):
         """
         Ghosts cannot stop, and cannot turn around unless they
@@ -405,7 +407,7 @@ class GhostRules:
             raise Exception("Illegal ghost action " + str(action))
 
         ghostState = state.data.agentStates[ghostIndex]
-        speed = GhostRules.GHOST_SPEED
+        speed = GHOST_SPEED()
         if ghostState.scaredTimer > 0: speed /= 2.0
         vector = Actions.directionToVector( action, speed )
         ghostState.configuration = ghostState.configuration.generateSuccessor( vector )
@@ -610,13 +612,13 @@ def loadAgent(pacman, nographics):
 def replayGame( layout, actions, display ):
     import pacmanAgents, ghostAgents
     rules = ClassicGameRules()
-    agents = [pacmanAgents.GreedyAgent()] + [ghostAgents.RandomGhost(i+1) for i in range(layout.getNumGhosts())]
+    agents = [pacmanAgents.GreedyAgent()] + [ghostAgents.DirectionalGhost(i+1) for i in range(layout.getNumGhosts())]
     game = rules.newGame( layout, agents[0], agents[1:], display )
     state = game.state
     display.initialize(state.data)
 
     for action in actions:
-            # Execute the action
+        # Execute the action
         state = state.generateSuccessor( *action )
         # Change the display
         display.update( state.data )

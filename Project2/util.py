@@ -15,8 +15,70 @@
 import sys
 import inspect
 import heapq, random
+from collections import deque
+from random import shuffle
+
 import cStringIO
 
+
+##################################################
+INF = float('inf')
+RED=(1,0,0)
+def get_pairs(sequence):
+    sequence = list(sequence)
+    return list(zip(sequence[:-1], sequence[1:]))
+
+def merge_dicts(*args):
+    result = {}
+    for d in args:
+        result.update(d)
+    return result
+    # return dict(reduce(operator.add, [d.items() for d in args]))
+
+
+def flatten(iterable_of_iterables):
+    return (item for iterables in iterable_of_iterables for item in iterables)
+
+def randomize(sequence):
+    sequence = list(sequence)
+    shuffle(sequence)
+    return sequence
+
+def bisect(sequence):
+    sequence = list(sequence)
+    indices = set()
+    queue = deque([(0, len(sequence)-1)])
+    while queue:
+        lower, higher = queue.popleft()
+        if lower > higher:
+            continue
+        index = int((lower + higher) / 2.)
+        assert index not in indices
+        #if is_even(higher - lower):
+        yield sequence[index]
+        queue.extend([
+            (lower, index-1),
+            (index+1, higher),
+        ])
+##################################################
+
+def forward_selector(path):
+    return path
+
+def backward_selector(path):
+    return reversed(list(path))
+
+
+def random_selector(path):
+    return randomize(path)
+
+
+def bisect_selector(path):
+    return bisect(path)
+
+
+default_selector = bisect_selector
+##################################################
 
 class FixedRandom:
     def __init__(self):
