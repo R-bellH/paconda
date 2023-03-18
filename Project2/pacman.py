@@ -321,7 +321,7 @@ class ClassicGameRules:
     def getMaxTimeWarnings(self, agentIndex):
         return 0
 
-PACMAN_SPEED = lambda: random.uniform(0.8,1.0)  #.5
+PACMAN_SPEED =   lambda: random.uniform(0.8,1.0) # 1
 
 class PacmanRules:
     """
@@ -555,7 +555,7 @@ def readCommand( argv ):
 
     # Choose a ghost agent
     ghostType = loadAgent(options.ghost, noKeyboard)
-    args['ghosts'] = [ghostType( i+1 ) for i in range( options.numGhosts )]
+    args['ghosts'] = [ghostType( i+1,args['layout'] ) for i in range( options.numGhosts )]
 
     # Choose a display format
     if options.quietGraphics:
