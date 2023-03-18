@@ -31,4 +31,4 @@ def show_PRM(ghost_num):
     nx.draw(G, pos, with_labels=False, node_size=1, node_color='r', width=0.5, alpha=0.5,edge_color='b')
     plt.show()
 
-show_PRM('4')
+show_PRM('1')
