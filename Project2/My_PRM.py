@@ -148,17 +148,15 @@ class Roadmap(Mapping, object):
             v.clear()
         for e in self.edges:
             e.clear()
-    # def draw(self, env):
-    #     for v in self.vertices.values():
-    #         v.draw(env)
-    #     for e in self.edges:
-    #         e.draw(env)
+
 
     def remove_vertex(self,v):
         print "number of vertices", len(self.vertices)
         print "number of edges", len(self.edges)
+        v=self.vertices[(round(v[0], 3),round(v[1], 3))]
         for e in v.edges.values():
-            self.edges.remove(e)
+            print "edges of v1" , e.v1.edges
+            e.clear()
         del self.vertices[v.q]
         print "number of vertices", len(self.vertices)
         print "number of edges", len(self.edges)
