@@ -137,7 +137,7 @@ class Roadmap(Mapping, object):
     def connect(self, v1, v2, path=None):
         if v1==v2:
             return None
-        if v1 not in v2.edges:  # TODO - what about parallel edges?
+        if v1 not in v2.edges:
             edge = Edge(v1, v2, path)
             self.edges.append(edge)
             return edge
@@ -204,7 +204,6 @@ class Roadmap(Mapping, object):
 
     def closest_node(self, v):
         """Returns the closest node to v"""
-        #TODO: this don't take into account walls
         min_dist = float('inf')
         closest_node = None
         for node in self.vertices.values():

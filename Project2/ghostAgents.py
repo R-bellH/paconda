@@ -122,9 +122,6 @@ class PRMGhost(GhostAgent):
         new_positions = [(pos[0] + a[0], pos[1] + a[1]) for a in action_vectors]
         pacman_position = state.getPacmanPosition()
         pacman_position = (round(pacman_position[0], 3), round(pacman_position[1], 3))
-        # TODO: currently we add too many points to the PRM which make long games run very slow. maybe forget old locations or places that aren't visited?
-        # TODO: additionally I can speed up the game for multiple ghosts maybe by adding Pacman locations to a
-        #  different, common (global?) PRM that only joins to the ghosts when needed
         if self.is_in_node(pos):
             self.add_to_prm(pacman_position, self.degree)
             self.next_node = self.find_next_node(pos, pacman_position)
@@ -219,8 +216,7 @@ class PRMGhost(GhostAgent):
                 return True
         return False
 
-    def collision(self, start,
-                  end):  # TODO make this approxmiate walking in a stright line (along the dots on the map)
+    def collision(self, start, end):
         """
         Returns true if there is a wall between the two points going in two stright lines (kinda, i think.)
         """
