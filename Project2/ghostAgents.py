@@ -16,8 +16,9 @@ from game import Agent
 from game import Actions
 from game import Directions
 import random
-from util import manhattanDistance
+from util import manhattanDistance, bresenham
 import util
+import numpy as np
 
 class GhostAgent(Agent):
     def __init__(self, index, state=None):
@@ -85,17 +86,16 @@ class DirectionalGhost(GhostAgent):
         return dist
 
 
-##### Arbel's ghost - PRM #####
+##### PRM ghost #####
 from My_PRM import Roadmap
 from math import ceil, floor
 
 
 class PRMGhost(GhostAgent):
     """
-    A ghost that only know the world via PRM
-    """
-
-    def __init__(self, index, layout=None, prob_attack=0.99, prob_scaredFlee=0.99, samples=50, degree=5):
+    A ghost that only know the world via PRM    """
+    def __init__(self, index, layout=None, prob_attack=0.99, prob_scaredFlee=0.99, samples=100, degree=5):
+        GhostAgent.__init__(self, index)
         self.index = index
         self.layout = layout
         self.degree = degree
@@ -122,16 +122,13 @@ class PRMGhost(GhostAgent):
         new_positions = [(pos[0] + a[0], pos[1] + a[1]) for a in action_vectors]
         pacman_position = state.getPacmanPosition()
         pacman_position = (round(pacman_position[0], 3), round(pacman_position[1], 3))
-        self.add_to_prm(pacman_position, self.degree)
-        # TODO: currently we add too many points to the PRM which make long games run very slow. maybe forget old locations or places that aren't visited?
-        # TODO: additionally I can speed up the game for multiple ghosts maybe by adding Pacman locations to a
-        #  different, common (global?) PRM that only joins to the ghosts when needed
         if self.is_in_node(pos):
+            self.add_to_prm(pacman_position, self.degree)
             self.next_node = self.find_next_node(pos, pacman_position)
-        print "current next node is ", self.next_node
+        # print "current next node is ", self.next_node
         # Select best actions given the state
         distances_to_next_node = [manhattanDistance(pos, self.next_node) for pos in new_positions]
-        print "distances to next nodes", distances_to_next_node
+        # print "distances to next nodes", distances_to_next_node
         if is_scared:
             best_score = max(distances_to_next_node)
             best_prob = self.prob_scaredFlee
@@ -209,7 +206,7 @@ class PRMGhost(GhostAgent):
                 return True
         return False
 
-    def is_in_node(self, v, tolerance=1.5):
+    def is_in_node(self, v, tolerance=1):
         """check if a vertex is in a node"""
         x, y = round(v[0], 3), round(v[1], 3)
         xs = map(lambda x: round(x[0], 3), self.prm.vertices.keys())
@@ -219,8 +216,7 @@ class PRMGhost(GhostAgent):
                 return True
         return False
 
-    def collision(self, start,
-                  end):  # TODO make this approxmiate walking in a stright line (along the dots on the map)
+    def collision(self, start, end):
         """
         Returns true if there is a wall between the two points going in two stright lines (kinda, i think.)
         """
@@ -237,7 +233,7 @@ class PRMGhost(GhostAgent):
 
         p1 = (x1, y1)
         p2 = (x2, y2)
-        line_pix = self.bresenham(p1, p2)
+        line_pix = bresenham(p1, p2)
 
         for p in line_pix:
             (x, y) = p
@@ -246,52 +242,69 @@ class PRMGhost(GhostAgent):
 
         return False
 
-    def bresenham(self, start, end):
-        """Bresenham's Line Algorithm
-        Produces a list of tuples from start and end
-        """
 
-        # Setup initial conditions
-        x1, y1 = start
-        x2, y2 = end
-        dx = x2 - x1
-        dy = y2 - y1
+#### Flank ghost ####
+'''A ghost that tries to flank pacman'''
+class FlankGhost(PRMGhost):
+    """
+    A ghost that only know the world via PRM
+    """
 
-        # Determine how steep the line is
-        is_steep = abs(dy) > abs(dx)
+    def __init__(self, index, state=None, prob_attack=0.99, prob_scaredFlee=0.99, samples=100, degree=5):
+        PRMGhost.__init__(self, index, state, prob_attack, prob_scaredFlee, samples, degree)
 
-        # Rotate line
-        if is_steep:
-            x1, y1 = y1, x1
-            x2, y2 = y2, x2
+    def getDistribution(self, state):
+        other_locations = []
+        for agent in range(1, len(state.data.agentStates)):
+            if agent != self.index:
+                other_locations.append(state.data.agentStates[agent].configuration.pos)
+        print "other locations: ", other_locations
 
-        # Swap start and end points if necessary and store swap state
-        swapped = False
-        if x1 > x2:
-            x1, x2 = x2, x1
-            y1, y2 = y2, y1
-            swapped = True
+        ghost_state = state.getGhostState(self.index)
+        legal_actions = state.getLegalActions(self.index)
+        pos = state.getGhostPosition(self.index)
+        is_scared = ghost_state.scaredTimer > 0
+        speed_rnd = lambda: random.uniform(0.2, 1.0)
+        speed = speed_rnd()
+        if is_scared: speed = speed_rnd() * 0.5
+        action_vectors = [Actions.directionToVector(a, speed) for a in legal_actions]
+        new_positions = [(pos[0] + a[0], pos[1] + a[1]) for a in action_vectors]
+        pacman_position = state.getPacmanPosition()
+        pacman_position = (round(pacman_position[0], 3), round(pacman_position[1], 3))
+        self.add_to_prm(pacman_position, self.degree)
+        closest_pos = (10e5, 10e5)
+        for other in other_locations + [pos]:
+            if manhattanDistance(pacman_position, other) < manhattanDistance(pacman_position, closest_pos):
+                closest_pos = other
+        print "closest pos is ", closest_pos
+        if self.is_in_node(pos):
+            if (pacman_position[0] >= closest_pos[0]):
+                next_x = pacman_position[0] + 0.1
+            else:
+                next_x = pacman_position[0] - 0.1
+            if (pacman_position[1] >= closest_pos[1]):
+                next_y = pacman_position[1] + 0.1
+            else:
+                next_y = pacman_position[1] - 0.1
 
-        # Recalculate differentials
-        dx = x2 - x1
-        dy = y2 - y1
-
-        # Calculate error
-        error = int(dx / 2.0)
-        ystep = 1 if y1 < y2 else -1
-
-        # Iterate over bounding box generating points between start and end
-        y = y1
-        points = []
-        for x in range(x1, x2 + 1):
-            coord = (y, x) if is_steep else (x, y)
-            points.append(coord)
-            error -= abs(dy)
-            if error < 0:
-                y += ystep
-                error += dx
-
-        # Reverse the list if the coordinates were swapped
-        if swapped:
-            points.reverse()
-        return points
+            self.next_node = self.find_next_node(pos, (next_x, next_y))
+        #   print "current next node is ", self.next_node
+        # Select best actions given the state
+        distances_to_next_node = [manhattanDistance(pos, self.next_node) for pos in new_positions]
+        # print "distances to next nodes", distances_to_next_node
+        if is_scared:
+            best_score = max(distances_to_next_node)
+            best_prob = self.prob_scaredFlee
+        else:
+            best_score = min(distances_to_next_node)
+            best_prob = self.prob_attack
+        best_actions = [action for action, distance in zip(legal_actions, distances_to_next_node) if
+                        distance == best_score]
+        # Construct distribution
+        dist = util.Counter()
+        for a in best_actions: dist[a] = best_prob / len(best_actions)
+        for a in legal_actions: dist[a] += (1 - best_prob) / len(legal_actions)
+        dist.normalize()
+        open('prm_edges_for_ghost_' + str(self.index) + '.txt', 'w').write(str(self.prm.edges))
+        open('prm_vertices_for_ghost_' + str(self.index) + '.txt', 'w').write(str(self.prm.vertices))
+        return dist
