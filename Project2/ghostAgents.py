@@ -18,7 +18,6 @@ from game import Directions
 import random
 from util import manhattanDistance
 import util
-import numpy as np
 
 class GhostAgent(Agent):
     def __init__(self, index, state=None):
@@ -247,72 +246,52 @@ class PRMGhost(GhostAgent):
 
         return False
 
-
     def bresenham(self, start, end):
+        """Bresenham's Line Algorithm
+        Produces a list of tuples from start and end
         """
-        Bresenham's Line Generation Algorithm
-        https://www.youtube.com/watch?v=76gp2IAazV4
-        """
 
-        # step 1 get end-points of line
-        (x0, y0) = start
-        (x1, y1) = end
+        # Setup initial conditions
+        x1, y1 = start
+        x2, y2 = end
+        dx = x2 - x1
+        dy = y2 - y1
 
-        line_pixel = []
-        line_pixel.append((x0, y0))
+        # Determine how steep the line is
+        is_steep = abs(dy) > abs(dx)
 
-        # step 2 calculate difference
-        dx = abs(x1 - x0)
-        dy = abs(y1 - y0)
+        # Rotate line
+        if is_steep:
+            x1, y1 = y1, x1
+            x2, y2 = y2, x2
 
-        if dx == 0 :
-            for y in range(y0, y1):
-                line_pixel.append((x0, y))
-            line_pixel = np.array(line_pixel)
-            return line_pixel
+        # Swap start and end points if necessary and store swap state
+        swapped = False
+        if x1 > x2:
+            x1, x2 = x2, x1
+            y1, y2 = y2, y1
+            swapped = True
 
-        m = dy / dx
+        # Recalculate differentials
+        dx = x2 - x1
+        dy = y2 - y1
 
-        # step 3 perform test to check if pk < 0
-        flag = True
+        # Calculate error
+        error = int(dx / 2.0)
+        ystep = 1 if y1 < y2 else -1
 
+        # Iterate over bounding box generating points between start and end
+        y = y1
+        points = []
+        for x in range(x1, x2 + 1):
+            coord = (y, x) if is_steep else (x, y)
+            points.append(coord)
+            error -= abs(dy)
+            if error < 0:
+                y += ystep
+                error += dx
 
-        step = 1
-        if x0 > x1 or y0 > y1:
-            step = -1
-
-        mm = False
-        if m < 1:
-            x0, x1, y0, y1 = y0, y1, x0, x1
-            dx = abs(x1 - x0)
-            dy = abs(y1 - y0)
-            mm = True
-
-        p0 = 2 * dx - dy
-        x = x0
-        y = y0
-
-        for i in range(abs(y1 - y0)):
-            if flag:
-                x_previous = x0
-                p_previous = p0
-                p = p0
-                flag = False
-            else:
-                x_previous = x
-                p_previous = p
-
-            if p >= 0:
-                x = x + step
-
-            p = p_previous + 2 * dx - 2 * dy * (abs(x - x_previous))
-            y = y + 1
-
-            if mm:
-                line_pixel.append((y, x))
-            else:
-                line_pixel.append((x, y))
-
-        line_pixel = np.array(line_pixel)
-
-        return line_pixel
+        # Reverse the list if the coordinates were swapped
+        if swapped:
+            points.reverse()
+        return points
