@@ -16,9 +16,9 @@ from game import Agent
 from game import Actions
 from game import Directions
 import random
-from util import manhattanDistance, bresenham
+from util import manhattanDistance
 import util
-
+import numpy as np
 
 class GhostAgent(Agent):
     def __init__(self, index, state=None):
@@ -86,7 +86,7 @@ class DirectionalGhost(GhostAgent):
         return dist
 
 
-##### PRM ghost #####
+##### Arbel's ghost - PRM #####
 from My_PRM import Roadmap
 from math import ceil, floor
 
@@ -100,7 +100,6 @@ class PRMGhost(GhostAgent):
         self.layout = layout
         self.degree = degree
         print("PRM ghost Index: ", index)
-        print([pos[1] for pos in layout.agentPositions if pos[0] == False])
         self.start = layout.agentPositions[index][1]
         self.start = (round(self.start[0], 3), round(self.start[1], 3))
         print(self.start)
@@ -112,11 +111,6 @@ class PRMGhost(GhostAgent):
         self.next_node = self.start
 
     def getDistribution(self, state):
-        other_locations = []
-        for agent in range(1, len(state.data.agentStates)):
-            if agent != self.index:
-                other_locations.append(state.data.agentStates[agent].configuration.pos)
-                # print "other locations: ", other_locations
         ghost_state = state.getGhostState(self.index)
         legal_actions = state.getLegalActions(self.index)
         pos = state.getGhostPosition(self.index)
@@ -133,18 +127,6 @@ class PRMGhost(GhostAgent):
         #  different, common (global?) PRM that only joins to the ghosts when needed
         if self.is_in_node(pos):
             self.add_to_prm(pacman_position, self.degree)
-            closest_pos = (10e5, 10e5)
-            for other in other_locations + [pos]:
-                if manhattanDistance(pacman_position, other) < manhattanDistance(pacman_position, closest_pos):
-                    closest_pos = other
-            if (pacman_position[0] >= closest_pos[0]):
-                next_x = pacman_position[0] + 0.1
-            else:
-                next_x = pacman_position[0] - 0.1
-            if (pacman_position[1] >= closest_pos[1]):
-                next_y = pacman_position[1] + 0.1
-            else:
-                next_y = pacman_position[1] - 0.1
             self.next_node = self.find_next_node(pos, (next_x, next_y))
         print "current next node is ", self.next_node
         # Select best actions given the state
@@ -177,18 +159,22 @@ class PRMGhost(GhostAgent):
     def sample_space(self, width, height, n):
         samples = []
         for i in range(n):
-            samples.append((round(random.uniform(0, width - 1), 3), round(random.uniform(0, height - 1),
+            samples.append((round(random.uniform(1, width - 1), 3), round(random.uniform(1, height - 1),
                                                                           3)))  # round to 3 decimal places means a tolerance of 0.001
         return samples
 
     def order_by_distance(self, v):
         return sorted(self.prm.vertices, key=lambda x: manhattanDistance(v, x))
 
-    def establish_edges(self):  # try to connect all vertices which have viable path between them
+    def establish_edges(self, degree=5):  # try to connect all vertices which have viable path between them
         for v in self.prm.vertices:
+            d = degree
             for w in self.order_by_distance(v):
-                if not self.collision_fn(v, w):
+                if d < 1:
+                    break
+                if not self.collision(v, w):
                     self.prm.connect(self.prm.vertices[v], self.prm.vertices[w])
+                    d -= 1
 
     def buildPRM(self, num_samples=100):
         samples = self.sample_space(self.layout.width, self.layout.height, num_samples)
@@ -201,21 +187,20 @@ class PRMGhost(GhostAgent):
         with open('prm_edges_for_ghost_' + str(self.index) + '.txt', 'w') as f:
             f.write(str(self.prm.edges))
 
-    def add_to_prm(self, v, degree=1, tolerance=0.5):
+    def add_to_prm(self, v, degree=5):
         """In order to avoid adding too many nodes (slows the game) we only add a node it if's far enough from the
         closest node or if they have a wall between them"""
         v = (round(v[0], 3), round(v[1], 3))
-        closest = self.order_by_distance(v)[0]
-        if manhattanDistance(v, closest) > tolerance or self.collision_fn(v, closest):
-            self.prm.add([v])
-            neighbors = self.order_by_distance(v)
-            for w in neighbors:
-                if v != w and not self.collision_fn(v, w):
-                    print("adding edge: ", v, w)
-                    self.prm.connect(self.prm.vertices[v], self.prm.vertices[w])
-                    degree -= 1
-                    if degree == 0:
-                        break
+        self.prm.add([v])
+        neighbors = self.order_by_distance(v)
+        d = degree
+        for w in neighbors:
+            if d < 1:
+                break
+            if not self.collision(v, w):
+                # print("adding edge: ", v, w)
+                self.prm.connect(self.prm.vertices[v], self.prm.vertices[w])
+                d -= 1
 
     def not_wall(self, (x, y)):
         """it's probably not a wall"""
@@ -234,26 +219,31 @@ class PRMGhost(GhostAgent):
                 return True
         return False
 
-    def collision_fn(self, start,end):  # TODO make this approxmiate walking in a stright line (along the dots on the map)
+    def collision(self, start,
+                  end):  # TODO make this approxmiate walking in a stright line (along the dots on the map)
         """
         Returns true if there is a wall between the two points going in two stright lines (kinda, i think.)
         """
         walls = self.layout.walls
         x1, y1 = start
         x2, y2 = end
-        x_s = ceil(min(x1, x2))
-        x_e = floor(max(x1, x2))
-        y_s = ceil(min(y1, y2))
-        y_e = floor(max(y1, y2))
-        while x_s <= x_e or y_s <= y_e:
-            if x_s <= x_e:
-                if walls[int(x_s)][int(y1)]:
-                    return True
-                x_s += 1
-            if y_s <= y_e:
-                if walls[int(x1)][int(y_s)]:
-                    return True
-                y_s += 1
+        x1 = int(floor(x1))
+        x2 = int(floor(x2))
+        y1 = int(floor(y1))
+        y2 = int(floor(y2))
+
+        if walls[x1][y1] or walls[x2][y2]:
+            return True
+
+        p1 = (x1, y1)
+        p2 = (x2, y2)
+        line_pix = self.bresenham(p1, p2)
+
+        for p in line_pix:
+            (x, y) = p
+            if walls[x][y]:
+                return True
+
         return False
 
 
@@ -363,3 +353,72 @@ class FlankGhost(PRMGhost):
         open('prm_edges_for_ghost_' + str(self.index) + '.txt', 'w').write(str(self.prm.edges))
         open('prm_vertices_for_ghost_' + str(self.index) + '.txt', 'w').write(str(self.prm.vertices))
         return dist
+
+    def bresenham(self, start, end):
+        """
+        Bresenham's Line Generation Algorithm
+        https://www.youtube.com/watch?v=76gp2IAazV4
+        """
+
+        # step 1 get end-points of line
+        (x0, y0) = start
+        (x1, y1) = end
+
+        line_pixel = []
+        line_pixel.append((x0, y0))
+
+        # step 2 calculate difference
+        dx = abs(x1 - x0)
+        dy = abs(y1 - y0)
+
+        if dx == 0 :
+            for y in range(y0, y1):
+                line_pixel.append((x0, y))
+            line_pixel = np.array(line_pixel)
+            return line_pixel
+
+        m = dy / dx
+
+        # step 3 perform test to check if pk < 0
+        flag = True
+
+
+        step = 1
+        if x0 > x1 or y0 > y1:
+            step = -1
+
+        mm = False
+        if m < 1:
+            x0, x1, y0, y1 = y0, y1, x0, x1
+            dx = abs(x1 - x0)
+            dy = abs(y1 - y0)
+            mm = True
+
+        p0 = 2 * dx - dy
+        x = x0
+        y = y0
+
+        for i in range(abs(y1 - y0)):
+            if flag:
+                x_previous = x0
+                p_previous = p0
+                p = p0
+                flag = False
+            else:
+                x_previous = x
+                p_previous = p
+
+            if p >= 0:
+                x = x + step
+
+            p = p_previous + 2 * dx - 2 * dy * (abs(x - x_previous))
+            y = y + 1
+
+            if mm:
+                line_pixel.append((y, x))
+            else:
+                line_pixel.append((x, y))
+
+        line_pixel = np.array(line_pixel)
+
+        return line_pixel

@@ -11,14 +11,14 @@
 # Student side autograding was added by Brad Miller, Nick Hay, and
 # Pieter Abbeel (pabbeel@cs.berkeley.edu).
 
-
 import sys
 import inspect
 import heapq, random
+import numpy as np
+import cStringIO
 from collections import deque
 from random import shuffle
 
-import cStringIO
 
 
 class FixedRandom:
