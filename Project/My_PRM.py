@@ -185,7 +185,7 @@ class Roadmap(Mapping, object):
                 closest_node = node
         return closest_node
 
-    def a_star_algorithm(self, start_node, stop_node, h):
+    def a_star(self, start_node, stop_node, h=lambda n: 0, distance=manhattanDistance):
         # open_list is a list of nodes which have been visited, but who's neighbors
         # haven't all been inspected, starts off with the start node
         # closed_list is a list of nodes which have been visited
@@ -233,7 +233,7 @@ class Roadmap(Mapping, object):
 
             # for all neighbors of the current node do
             for m in self.neighbors(n):
-                weight = m.weight
+                weight = distance(n,m) #m.weight
                 # if the current node isn't in both open_list and closed_list
                 # add it to open_list and note n as it's parent
                 if m not in open_list and m not in closed_list:
@@ -251,7 +251,7 @@ class Roadmap(Mapping, object):
 
                         if m in closed_list:
                             closed_list.remove(m)
-                            open_list.add(m)
+                            open_list.add   (m)
 
             # remove n from the open_list, and add it to closed_list
             # because all of his neighbors were inspected

@@ -252,11 +252,8 @@ class PRMGhost(GhostAgent):
 
 
 class FlankGhost(PRMGhost):
-    """
-    A ghost that only know the world via PRM
-    """
 
-    def __init__(self, index, state=None, prob_attack=0.99, prob_scaredFlee=0.99, samples=1000, degree=7):
+    def __init__(self, index, state=None, prob_attack=0.99, prob_scaredFlee=0.99, samples=100, degree=7):
         PRMGhost.__init__(self, index, state, prob_attack, prob_scaredFlee, samples, degree)
         self.prevpacman = state.agentPositions[0][1]
 
@@ -320,3 +317,18 @@ class FlankGhost(PRMGhost):
         pacman_position = state.getPacmanPosition()
         pacman_position = (round(pacman_position[0], 3), round(pacman_position[1], 3))
         self.prevpacman = pacman_position
+
+#### A* ghost ####
+'''A ghost that uses A* to find the shortest path to pacman'''
+class AStarGhost(PRMGhost):
+
+    def __init__(self, index, state=None, prob_attack=0.99, prob_scaredFlee=0.99, samples=100, degree=7):
+        PRMGhost.__init__(self, index, state, prob_attack, prob_scaredFlee, samples, degree)
+
+    def find_next_node(self, pos, pacman_position):
+        path = self.prm.a_star(pos, pacman_position)
+        if path is None:
+            v = (round(random.uniform(1, self.layout.width - 1), 3), round(random.uniform(1, self.layout.height - 1), 3))
+            self.add_to_prm(v)
+            return self.next_node
+        return path[1]
