@@ -10,7 +10,7 @@
 # (denero@cs.berkeley.edu) and Dan Klein (klein@cs.berkeley.edu).
 # Student side autograding was added by Brad Miller, Nick Hay, and
 # Pieter Abbeel (pabbeel@cs.berkeley.edu).
-
+import math
 import sys
 import inspect
 import heapq, random
@@ -221,6 +221,9 @@ def manhattanDistance(xy1, xy2):
     "Returns the Manhattan distance between points xy1 and xy2"
     return abs(xy1[0] - xy2[0]) + abs(xy1[1] - xy2[1])
 
+def euclideanDistance(xy1, xy2):
+    "Returns the Euclidean distance between points xy1 and xy2"
+    return math.sqrt((xy1[0] - xy2[0]) ** 2 + (xy1[1] - xy2[1]) ** 2)
 
 """
   Data structures and functions useful for various course projects
@@ -1108,3 +1111,5 @@ def bresenham( start, end):
     if swapped:
         points.reverse()
     return points
+
+

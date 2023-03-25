@@ -4,7 +4,7 @@
 # educational purposes provided that (1) you do not distribute or publish
 # solutions, (2) you retain this notice, and (3) you provide clear
 # attribution to UC Berkeley, including a link to http://ai.berkeley.edu.
-# 
+
 # Attribution Information: The Pacman AI projects were developed at UC Berkeley.
 # The core projects and autograders were primarily created by John DeNero
 # (denero@cs.berkeley.edu) and Dan Klein (klein@cs.berkeley.edu).
@@ -163,7 +163,7 @@ class PRMGhost(GhostAgent):
     def order_by_distance(self, v):
         return sorted(self.prm.vertices, key=lambda x: manhattanDistance(v, x))
 
-    def establish_edges(self, degree=5):  # try to connect all vertices which have viable path between them
+    def establish_edges(self, degree=7):  # connect each node to some of it's nearest neighbors
         for v in self.prm.vertices:
             d = degree
             for w in self.order_by_distance(v):
@@ -286,7 +286,6 @@ class FlankGhost(PRMGhost):
                 next_y = pacman_position[1] + 0.1
             else:
                 next_y = pacman_position[1] - 0.1
-
             self.next_node = self.find_next_node(pos, (next_x, next_y))
         #   print "current next node is ", self.next_node
         # Select best actions given the state
