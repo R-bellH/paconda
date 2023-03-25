@@ -29,6 +29,7 @@ def show_PRM(ghost_num):
     # Draw the graph
     pos = {node: (G.nodes[node]['x'],G.nodes[node]['y']) for node in G.nodes()}
     nx.draw(G, pos, with_labels=False, node_size=1, node_color='r', width=0.5, alpha=0.5,edge_color='b')
+    
     plt.show()
 
 show_PRM('1')
