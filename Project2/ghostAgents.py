@@ -20,6 +20,7 @@ from util import manhattanDistance, bresenham
 import util
 import numpy as np
 
+
 class GhostAgent(Agent):
     def __init__(self, index, state=None):
         self.index = index
@@ -94,7 +95,8 @@ from math import ceil, floor
 class PRMGhost(GhostAgent):
     """
     A ghost that only know the world via PRM    """
-    def __init__(self, index, layout=None, prob_attack=0.99, prob_scaredFlee=0.99, samples=100, degree=5):
+
+    def __init__(self, index, layout=None, prob_attack=0.99, prob_scaredFlee=0.99, samples=100, degree=7):
         GhostAgent.__init__(self, index)
         self.index = index
         self.layout = layout
@@ -121,11 +123,12 @@ class PRMGhost(GhostAgent):
         action_vectors = [Actions.directionToVector(a, speed) for a in legal_actions]
         new_positions = [(pos[0] + a[0], pos[1] + a[1]) for a in action_vectors]
         pacman_position = state.getPacmanPosition()
-        pacman_position = (round(pacman_position[0], 3), round(pacman_position[1], 3))
+        # pacman_position = (round(pacman_position[0], 3), round(pacman_position[1], 3))
+        pacman_position = (ceil(pacman_position[0]), ceil(pacman_position[1]))
         if self.is_in_node(pos):
-            self.add_to_prm(pacman_position, self.degree)
+            self.add_to_prm(pacman_position)
             self.next_node = self.find_next_node(pos, pacman_position)
-        # print "current next node is ", self.next_node
+
         # Select best actions given the state
         distances_to_next_node = [manhattanDistance(pos, self.next_node) for pos in new_positions]
         # print "distances to next nodes", distances_to_next_node
@@ -165,9 +168,9 @@ class PRMGhost(GhostAgent):
     def order_by_distance(self, v):
         return sorted(self.prm.vertices, key=lambda x: manhattanDistance(v, x))
 
-    def establish_edges(self, degree=7):  # connect each node to some of it's nearest neighbors
+    def establish_edges(self):  # connect each node to some of it's nearest neighbors
         for v in self.prm.vertices:
-            d = degree
+            d = self.degree
             for w in self.order_by_distance(v):
                 if d < 1:
                     break
@@ -186,13 +189,13 @@ class PRMGhost(GhostAgent):
         with open('prm_edges_for_ghost_' + str(self.index) + '.txt', 'w') as f:
             f.write(str(self.prm.edges))
 
-    def add_to_prm(self, v, degree=5):
+    def add_to_prm(self, v,):
         """In order to avoid adding too many nodes (slows the game) we only add a node it if's far enough from the
         closest node or if they have a wall between them"""
         v = (round(v[0], 3), round(v[1], 3))
         self.prm.add([v])
         neighbors = self.order_by_distance(v)
-        d = degree
+        d = self.degree
         for w in neighbors:
             if d < 1:
                 break
@@ -244,23 +247,24 @@ class PRMGhost(GhostAgent):
 
         return False
 
-
 #### Flank ghost ####
 '''A ghost that tries to flank pacman'''
+
+
 class FlankGhost(PRMGhost):
     """
     A ghost that only know the world via PRM
     """
 
-    def __init__(self, index, state=None, prob_attack=0.99, prob_scaredFlee=0.99, samples=100, degree=5):
+    def __init__(self, index, state=None, prob_attack=0.99, prob_scaredFlee=0.99, samples=100, degree=7):
         PRMGhost.__init__(self, index, state, prob_attack, prob_scaredFlee, samples, degree)
+        self.prevpacman = state.agentPositions[0][1]
 
     def getDistribution(self, state):
         other_locations = []
         for agent in range(1, len(state.data.agentStates)):
             if agent != self.index:
                 other_locations.append(state.data.agentStates[agent].configuration.pos)
-        print "other locations: ", other_locations
 
         ghost_state = state.getGhostState(self.index)
         legal_actions = state.getLegalActions(self.index)
@@ -273,23 +277,24 @@ class FlankGhost(PRMGhost):
         new_positions = [(pos[0] + a[0], pos[1] + a[1]) for a in action_vectors]
         pacman_position = state.getPacmanPosition()
         pacman_position = (round(pacman_position[0], 3), round(pacman_position[1], 3))
-        self.add_to_prm(pacman_position, self.degree)
-        closest_pos = (10e5, 10e5)
-        for other in other_locations + [pos]:
-            if manhattanDistance(pacman_position, other) < manhattanDistance(pacman_position, closest_pos):
-                closest_pos = other
-        print "closest pos is ", closest_pos
+        pacman_position = (pacman_position[0] if floor(pacman_position[0]) > 0 else 1,
+                           pacman_position[1] if floor(pacman_position[1]) > 0 else 1)
+
         if self.is_in_node(pos):
-            if (pacman_position[0] >= closest_pos[0]):
-                next_x = pacman_position[0] + 0.1
+            self.add_to_prm(pacman_position)
+            if (pacman_position[0] + 10 * (pacman_position[0] - self.prevpacman[0])) < self.layout.width and (
+                    pacman_position[0] + 10 * (pacman_position[0] - self.prevpacman[0])) > 0:
+                next_x = pacman_position[0] + 10 * (pacman_position[0] - self.prevpacman[0])
             else:
-                next_x = pacman_position[0] - 0.1
-            if (pacman_position[1] >= closest_pos[1]):
-                next_y = pacman_position[1] + 0.1
+                next_x = pacman_position[0]
+            if (pacman_position[1] + 10 * (pacman_position[0] - self.prevpacman[0])) < self.layout.height and (
+                    pacman_position[1] + 10 * (pacman_position[0] - self.prevpacman[0])) > 0:
+                next_y = pacman_position[1] + 10 * (pacman_position[0] - self.prevpacman[0])
             else:
-                next_y = pacman_position[1] - 0.1
+                next_y = pacman_position[1]
+
             self.next_node = self.find_next_node(pos, (next_x, next_y))
-        #   print "current next node is ", self.next_node
+
         # Select best actions given the state
         distances_to_next_node = [manhattanDistance(pos, self.next_node) for pos in new_positions]
         # print "distances to next nodes", distances_to_next_node
@@ -308,4 +313,10 @@ class FlankGhost(PRMGhost):
         dist.normalize()
         open('prm_edges_for_ghost_' + str(self.index) + '.txt', 'w').write(str(self.prm.edges))
         open('prm_vertices_for_ghost_' + str(self.index) + '.txt', 'w').write(str(self.prm.vertices))
+        self.update_prevpacman(state)
         return dist
+
+    def update_prevpacman(self, state):
+        pacman_position = state.getPacmanPosition()
+        pacman_position = (round(pacman_position[0], 3), round(pacman_position[1], 3))
+        self.prevpacman = pacman_position

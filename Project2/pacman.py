@@ -321,7 +321,7 @@ class ClassicGameRules:
     def getMaxTimeWarnings(self, agentIndex):
         return 0
 
-PACMAN_SPEED =   lambda:1#  random.uniform(0.8,1.0) # 1
+PACMAN_SPEED =   lambda: random.uniform(0.8,1.0) # 1
 
 class PacmanRules:
     """
