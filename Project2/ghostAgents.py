@@ -96,7 +96,7 @@ class PRMGhost(GhostAgent):
     """
     A ghost that only know the world via PRM    """
 
-    def __init__(self, index, layout=None, prob_attack=0.99, prob_scaredFlee=0.99, samples=100, degree=7):
+    def __init__(self, index, layout=None, prob_attack=0.99, prob_scaredFlee=0.99, samples=500, degree=-7):
         GhostAgent.__init__(self, index)
         self.index = index
         self.layout = layout
@@ -172,7 +172,7 @@ class PRMGhost(GhostAgent):
         for v in self.prm.vertices:
             d = self.degree
             for w in self.order_by_distance(v):
-                if d < 1:
+                if d == 0:
                     break
                 if not self.collision(v, w):
                     self.prm.connect(self.prm.vertices[v], self.prm.vertices[w])
@@ -197,7 +197,7 @@ class PRMGhost(GhostAgent):
         neighbors = self.order_by_distance(v)
         d = self.degree
         for w in neighbors:
-            if d < 1:
+            if d == 0:
                 break
             if not self.collision(v, w):
                 # print("adding edge: ", v, w)
@@ -256,7 +256,7 @@ class FlankGhost(PRMGhost):
     A ghost that only know the world via PRM
     """
 
-    def __init__(self, index, state=None, prob_attack=0.99, prob_scaredFlee=0.99, samples=100, degree=7):
+    def __init__(self, index, state=None, prob_attack=0.99, prob_scaredFlee=0.99, samples=1000, degree=7):
         PRMGhost.__init__(self, index, state, prob_attack, prob_scaredFlee, samples, degree)
         self.prevpacman = state.agentPositions[0][1]
 
