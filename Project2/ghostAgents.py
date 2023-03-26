@@ -249,7 +249,7 @@ class PRMGhost(GhostAgent):
 '''A ghost that tries to flank pacman'''
 class FlankGhost(PRMGhost):
     """
-    A ghost that only know the world via PRM
+    A ghost that only knows the world via PRM
     """
 
     def __init__(self, index, state=None, prob_attack=0.99, prob_scaredFlee=0.99, samples=100, degree=5):

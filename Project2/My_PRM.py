@@ -2,7 +2,7 @@ import heapq
 from collections import namedtuple, Mapping
 from heapq import heappop, heappush
 
-from util import INF, get_pairs, merge_dicts, flatten, RED, default_selector, apply_alpha,manhattanDistance
+from util import INF, get_pairs, merge_dicts, flatten, RED, default_selector, apply_alpha, manhattanDistance
 
 
 class Vertex(object):
