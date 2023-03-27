@@ -95,7 +95,7 @@ class PRMGhost(GhostAgent):
     """
     A ghost that only know the world via PRM    """
 
-    def __init__(self, index, layout=None, prob_attack=0.99, prob_scaredFlee=0.99, samples=500, degree=-7):
+    def __init__(self, index, layout=None, prob_attack=0.99, prob_scaredFlee=0.99, samples=100, degree=5):
         GhostAgent.__init__(self, index)
         self.index = index
         self.layout = layout
@@ -332,11 +332,12 @@ class AStarGhost(PRMGhost):
             return self.next_node
         return path[1]
 
+
 class GridGhost(GhostAgent):
     """
      A ghost that only knows the world via a Grid, but not the actual grid   """
 
-    def __init__(self, index, layout=None, prob_attack=0.99, prob_flee=0.99, grid_size=5):
+    def __init__(self, index, layout=None, prob_attack=0.99, prob_flee=0.99, grid_size=2):
         GhostAgent.__init__(self, index)
         self.index = index
         print("Grid ghost Index: ", index)
@@ -345,10 +346,15 @@ class GridGhost(GhostAgent):
         print(self.start)
         self.prob_attack = prob_attack
         self.prob_flee = prob_flee
-        self.grid_size = grid_size
+        self.grid_size = None
         self.grid = None
-        self.build_grid()
+        self.width = None
+        self.height = None
+        self.pp = (0,0)
+        self.mp = (0,0)
+        self.build_grid(grid_size)
         self.next_tile = [self.position_to_grid(self.start)[0], self.position_to_grid(self.start)[1]]
+
 
     def getDistribution(self, state):
         ghost_state = state.getGhostState(self.index)
@@ -361,9 +367,10 @@ class GridGhost(GhostAgent):
         action_vectors = [Actions.directionToVector(a, speed) for a in legal_actions]
         new_positions = [(pos[0] + a[0], pos[1] + a[1]) for a in action_vectors]
         pacman_position = state.getPacmanPosition()
-        pacman_position = (round(pacman_position[0], 3), round(pacman_position[1], 3))
-        if self.position_to_grid(pos) == self.next_tile :
-            self.next_tile = self.find_next_tile(pos, pacman_position)
+        self.pp = self.position_to_grid(pacman_position)
+        self.mp = self.position_to_grid(pos)
+        #if self.position_to_grid(pos) == self.next_tile:
+        self.next_tile = self.find_next_tile(pos, pacman_position)
         # Select best actions given the state
         distances_to_next_node = [manhattanDistance(pos, self.grid_to_position(self.next_tile)) for pos in new_positions]
         # print "distances to next nodes", distances_to_next_node
@@ -377,53 +384,57 @@ class GridGhost(GhostAgent):
                         distance == best_score]
         # Construct distribution
         dist = util.Counter()
-        for a in best_actions: dist[a] = best_prob / len(best_actions)
-        for a in legal_actions: dist[a] += (1 - best_prob) / len(legal_actions)
+        for a in best_actions:
+            dist[a] = best_prob / len(best_actions)
+        for a in legal_actions:
+            dist[a] += (1 - best_prob) / len(legal_actions)
         dist.normalize()
         return dist
 
-    def build_grid(self):                               # Create a Grid and find which tiles have obstacles to avoid
-        height = self.grid_size
-        width = self.grid_size * self.layout.width / self.layout.height
-        if height < 1 or width < 1:
-            return
-        self.grid = np.ones((height, width), bool)
-        print 'build grid board size: {}, {}'.format(self.layout.width , self.layout.height)
-        for i in range(height):
-            for j in range(width):
-                for m in range(int(floor(i*self.layout.height/height)), int(ceil((i+1)*self.layout.height/height))):
-                    for n in range(int(floor(j*self.layout.width/width)), int(ceil((j+1)*self.layout.width/width))):
-                        #print 'build grid checking point: {}, {}'.format(m, n)
-                        if self.layout.isWall((i, j)):
+    def build_grid(self, grid_size):    # Create a Grid and find which tiles have obstacles to avoid
+        self.grid_size = grid_size
+        g = float(self.layout.width) / float(grid_size)
+        self.width = int(floor(self.layout.width / g))
+        self.height = int(floor(self.layout.height / g))
+        print "g {} w {} h {}".format(g, self.width, self.height)
+        self.grid = np.ones((self.width, self.height), bool)
+        for i in range(self.width):
+            for j in range(self.height):
+                for m in range(int(floor(i * self.layout.width / self.width)), int(ceil((i+1) * self.layout.width / self.width))):
+                    for n in range(int(floor(j * self.layout.height / self.height)), int(ceil((j+1) * self.layout.height / self.height))):
+                        if self.layout.isWall((m, n)):
                             self.grid[i, j] = False
+        self.print_grid()
 
     def find_next_tile(self, pos, pacman_position):     # Call dfs on the grid to find the next tile to move to
-        next_tile = self.dfs_on_grid(pos, pacman_position)
-        if next is None:
-            self.grid_size += 5                         # If no tile is found make grid finer
-            self.build_grid()
+        next_tile = self.bfs_on_grid(self.position_to_grid(pos), self.position_to_grid(pacman_position))
+        if next_tile is None:
+            self.build_grid(self.grid_size + 1)  #int(round(self.grid_size - np.log(self.grid_size + 1))))     # If no tile is found make grid finer
             return self.next_tile
         return next_tile
 
     def position_to_grid(self, pos):    # Find which tile contains a position on the board
-        m = self.grid_size
-        n = self.grid_size * self.layout.width / self.layout.height
-        x = floor(pos[0] * n / self.layout.height)
-        y = floor(pos[1] * m / self.layout.width)
+        x = floor(pos[0] * self.width / self.layout.width)
+        y = floor(pos[1] * self.height / self.layout.height)
         return x, y
 
     def grid_to_position(self, pos):    # Find the positions on the board in the middle of a tile
-        m = self.grid_size
-        n = self.grid_size * self.layout.width / self.layout.height
-        x = floor(pos[0] * self.layout.height / n)
-        y = floor(pos[1] * self.layout.width / m)         ### add 0.5
+        x = floor((pos[0]+0.5) * self.layout.width / self.width)
+        y = floor((pos[1]+0.5) * self.layout.height / self.height)
         return x, y
 
-    def dfs_on_grid(self, start, end):
-        queue = [(end[0], end[1])]
+    def bfs_on_grid(self, start, end):
+        start = int(start[0]), int(start[1])
+        end = int(end[0]), int(end[1])
+        if not self.grid_free(start[0], start[1]) or not self.grid_free(end[0], end[1]):
+            print('No path found between {} and {}'.format(start, end))
+            return None
+        if manhattanDistance(start, end) < 2:
+            return end
+        q = [end]
         visited = set()
-        while queue:
-            v = queue.pop(0)
+        while q:
+            v = q.pop(0)
             if v in visited:
                 continue
             visited.add(v)
@@ -432,12 +443,26 @@ class GridGhost(GhostAgent):
             neighbor_cells = ((1, 0), (0, 1), (-1, 0), (0, -1))
             neighbors = list()
             for n in neighbor_cells:
-                x, y = int(v[0])+n[0], int(v[1])+n[1]
-                if 0 <= x <= self.grid_size * self.layout.width / self.layout.height and 0 <= y <= self.grid_size:
-                    if self.grid[int(v[0])+n[0], int(v[1])+n[1]]:
-                        neighbors.append(int((v[0])+n[0], int(v[1])+n[1]))
-            for u in neighbors:
-                if u not in visited:
-                    queue.append(v)
-        # print('No path found between {} and {}'.format(start, end))
+                x = v[0]+n[0]
+                y = v[1]+n[1]
+                if self.grid_free(x, y):
+                    neighbors.append((x, y))
+            for n in neighbors:
+                if n not in visited:
+                    q.append(n)
+        print('No path found between {} and {}'.format(start, end))
         return None
+
+    def grid_free(self, x, y):
+        if x < 0 or self.width <= x or y < 0 or self.height <= y:
+            return False
+        return self.grid[int(x), int(y)]
+
+    def print_grid(self):
+        g = self.grid
+        g[int(self.pp[0]), int(self.pp[1])] = 'P'
+        g[int(self.mp[0]), int(self.mp[1])] = 'G'
+
+        print('\n'.join([' '.join(['{:4}'.format(item)
+                                    for item in row])
+                                    for row in reversed(np.transpose(g))]))
