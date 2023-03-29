@@ -211,6 +211,7 @@ class PacmanGraphics:
         self.food = self.drawFood(layout.food)
         self.capsules = self.drawCapsules(layout.capsules)
         self.slowpills = self.drawSlowPills(layout.slowpills)
+
         refresh()
 
     def drawAgentObjects(self, state):

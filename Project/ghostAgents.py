@@ -466,3 +466,193 @@ class GridGhost(GhostAgent):
         print('\n'.join([' '.join(['{:4}'.format(item)
                                     for item in row])
                                     for row in reversed(np.transpose(g))]))
+
+from My_PRM import Vertex
+
+from graphicsUtils import line
+
+class RRTGhost(GhostAgent):
+    """
+    A ghost that only know the world via RRT    """
+
+    def __init__(self, index, layout=None, prob_attack=0.99, prob_scaredFlee=0.99, goal_prob=0.2, step_size=1):
+        GhostAgent.__init__(self, index)
+        #line((0, layout.height/2), (layout.width, layout.height/2), (1,1,1))
+        self.index = index
+        self.layout = layout
+        print("RRT ghost Index: ", index)
+        self.start = layout.agentPositions[index][1]
+        self.start = (round(self.start[0], 3), round(self.start[1], 3))
+        print(self.start)
+        self.prob_attack = prob_attack
+        self.prob_scaredFlee = prob_scaredFlee
+        self.goal_prob = goal_prob
+        self.step_size = step_size
+        self.next_node = self.start
+
+    def getDistribution(self, state):
+        ghost_state = state.getGhostState(self.index)
+        legal_actions = state.getLegalActions(self.index)
+        pos = state.getGhostPosition(self.index)
+        pos = (round(pos[0], 3), round(pos[1], 3))
+        pacman_position = state.getPacmanPosition()
+        pacman_position = (round(pacman_position[0], 3), round(pacman_position[1], 3))
+
+        is_scared = ghost_state.scaredTimer > 0
+        speed_rnd = lambda: random.uniform(0.2, 1.0)
+        speed = speed_rnd()
+        if is_scared: speed = speed_rnd() * 0.5
+        action_vectors = [Actions.directionToVector(a, speed) for a in legal_actions]
+        new_positions = [(pos[0] + a[0], pos[1] + a[1]) for a in action_vectors]
+
+#        if self.is_in_node(pos):
+        self.next_node = self.find_next_node(pos, pacman_position)
+
+        # Select best actions given the state
+        distances_to_next_node = [manhattanDistance(pos, self.next_node) for pos in new_positions]
+        # print "distances to next nodes", distances_to_next_node
+        if is_scared:
+            best_score = max(distances_to_next_node)
+            best_prob = self.prob_scaredFlee
+        else:
+            best_score = min(distances_to_next_node)
+            best_prob = self.prob_attack
+        best_actions = [action for action, distance in zip(legal_actions, distances_to_next_node) if
+                        distance == best_score]
+        # Construct distribution
+        dist = util.Counter()
+        for a in best_actions: dist[a] = best_prob / len(best_actions)
+        for a in legal_actions: dist[a] += (1 - best_prob) / len(legal_actions)
+        dist.normalize()
+ #       open('prm_edges_for_ghost_' + str(self.index) + '.txt', 'w').write(str(self.prm.edges))
+ #       open('prm_vertices_for_ghost_' + str(self.index) + '.txt', 'w').write(str(self.prm.vertices))
+        return dist
+
+    def find_next_node(self, pos, pacman_position):
+        path = self.RRT(pos, pacman_position)
+        if path is None:
+            # make step smaller?
+            return self.next_node
+        return path
+
+    def RRT(self, pos, pac_pos):
+        goal_reached = False
+        trre = [(pos, 0)]
+        counter = 200
+        while not goal_reached and counter:
+            counter -= 1
+            point = self.sample_point(self.layout.width, self.layout.height, pac_pos, self.goal_prob)
+            min_dis = manhattanDistance(pos, point)
+            father = None
+            for v in trre:
+                if not self.collision(v[0], point):
+                    if manhattanDistance(v[0], point) <= min_dis:
+                        min_dis = manhattanDistance(v[0], point)
+                        father = trre.index(v)
+            if father is not None:
+                trre.append((point, father))
+                if manhattanDistance(point, pac_pos) < 1.5:
+                    goal_reached = True
+
+        path = []
+        p = trre[-1]
+        while p[0] != pos:
+            path.append(p[0])
+            p = trre[p[1]]
+
+        if len(path) is 0:
+            return None
+
+        return path[-1]
+
+    def sample_point(self, width, height, goal, goal_prob):
+        p = np.random.uniform()
+        if p < goal_prob:
+            point = goal
+        else:
+            x = round(random.uniform(1, width - 1), 3)  # round to 3 decimal places means a tolerance of 0.001
+            y = round(random.uniform(1, height - 1), 3)
+            point = [x, y]
+        return point
+
+    def order_by_distance(self, v):
+        return sorted(self.prm.vertices, key=lambda x: manhattanDistance(v, x))
+
+    def establish_edges(self):  # connect each node to some of it's nearest neighbors
+        for v in self.prm.vertices:
+            d = self.degree
+            for w in self.order_by_distance(v):
+                if d == 0:
+                    break
+                if not self.collision(v, w):
+                    self.prm.connect(self.prm.vertices[v], self.prm.vertices[w])
+                    d -= 1
+
+    def buildPRM(self, num_samples=100):
+        samples = self.sample_space(self.layout.width, self.layout.height, num_samples)
+        print("samples: ", samples)
+        self.prm = Roadmap(samples)
+        print("prm: ", self.prm.vertices)
+        print(self.prm.vertices[samples[0]].edges)
+        self.establish_edges()
+        # save prm edges to a file to view
+        with open('prm_edges_for_ghost_' + str(self.index) + '.txt', 'w') as f:
+            f.write(str(self.prm.edges))
+
+    def add_to_prm(self, v,):
+        """In order to avoid adding too many nodes (slows the game) we only add a node it if's far enough from the
+        closest node or if they have a wall between them"""
+        v = (round(v[0], 3), round(v[1], 3))
+        self.prm.add([v])
+        neighbors = self.order_by_distance(v)
+        d = self.degree
+        for w in neighbors:
+            if d == 0:
+                break
+            if not self.collision(v, w):
+                # print("adding edge: ", v, w)
+                self.prm.connect(self.prm.vertices[v], self.prm.vertices[w])
+                d -= 1
+
+    def not_wall(self, (x, y)):
+        """it's probably not a wall"""
+        if x == int(x) and y == int(y):
+            if self.layout.isWall((x, y)):
+                return True
+        return False
+
+    def is_in_node(self, v, tolerance=1):
+        """check if a vertex is in a node"""
+        x, y = round(v[0], 3), round(v[1], 3)
+        xs = map(lambda x: round(x[0], 3), self.prm.vertices.keys())
+        ys = map(lambda x: round(x[1], 3), self.prm.vertices.keys())
+        for i in range(len(xs)):
+            if manhattanDistance((x, y), (xs[i], ys[i])) < tolerance:
+                return True
+        return False
+
+    def collision(self, start, end):
+        """
+        Returns true if there is a wall between the two points going in two stright lines (kinda, i think.)
+        """
+        walls = self.layout.walls
+        x1, y1 = start
+        x2, y2 = end
+        x1 = int(floor(x1))
+        x2 = int(floor(x2))
+        y1 = int(floor(y1))
+        y2 = int(floor(y2))
+
+        if walls[x1][y1] or walls[x2][y2]:
+            return True
+
+        p1 = (x1, y1)
+        p2 = (x2, y2)
+        line_pix = bresenham(p1, p2)
+
+        for p in line_pix:
+            (x, y) = p
+            if walls[x][y]:
+                return True
+
+        return False

@@ -88,7 +88,7 @@ class Roadmap(Mapping, object):
         self.edges = []
         self.add(samples)
         # added by Arbel
-        self.distance= manhattanDistance
+        self.distance = manhattanDistance
 
     def __getitem__(self, q):
         return self.vertices[q]
