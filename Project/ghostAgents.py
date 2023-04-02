@@ -404,7 +404,9 @@ class GridGhost(GhostAgent):
                     for n in range(int(floor(j * self.layout.height / self.height)), int(ceil((j+1) * self.layout.height / self.height))):
                         if self.layout.isWall((m, n)):
                             self.grid[i, j] = False
-        #self.print_grid()
+        open('grids_for_ghost_' + str(self.index) + '.txt', 'a').write((str(self.grid)))
+        open('grids_for_ghost_' + str(self.index) + '.txt', 'a').write(str(self.grid_size) + '\n')
+        # self.print_grid()
 
     def find_next_tile(self, pos, pacman_position):     # Call dfs on the grid to find the next tile to move to
         next_tile = self.bfs_on_grid(self.position_to_grid(pos), self.position_to_grid(pacman_position))
@@ -526,11 +528,13 @@ class RRTGhost(GhostAgent):
             return self.next_node
         return path
 
-    def RRT(self, pos, pac_pos, max_v=300): # gets a two points and the maximum number of vertices to compute and runs RRT
+    def RRT(self, pos, pac_pos, max_v=300):
+        max_v=-1
+        # gets a two points and the maximum number of vertices to compute and runs RRT
         goal_reached = False
         trre = [(pos, 0)]
-        counter = 600
-        while not goal_reached and counter:
+        counter = max_v
+        while (not goal_reached) and counter:
             counter -= 1
             point = self.sample_point(self.layout.width, self.layout.height, pac_pos, self.goal_prob)
             min_dis = manhattanDistance(pos, point)
@@ -541,10 +545,11 @@ class RRTGhost(GhostAgent):
                         min_dis = manhattanDistance(v[0], point)
                         father = trre.index(v)
             if father is not None:
-                trre.append((point, father))
+                trre.append(tuple((point, father)))
                 if manhattanDistance(point, pac_pos) < 1.5:
                     goal_reached = True
-
+        open('rrt_tree_for_ghost_' + str(self.index) + '.txt', 'a').write(str(trre))
+        open('rrt_tree_for_ghost_' + str(self.index) + '.txt', 'a').write('\n')
         path = []
         p = trre[-1]
         while p[0] != pos:
