@@ -31,6 +31,7 @@ class Layout:
         self.food = Grid(self.width, self.height, False)
         self.capsules = []
         self.slowpills = []
+        self.lines = []
         self.agentPositions = []
         self.numGhosts = 0
         self.processLayoutText(layoutText)
@@ -121,6 +122,8 @@ class Layout:
             self.food[x][y] = True
         elif layoutChar == 'o':
             self.capsules.append((x, y))
+        elif layoutChar == '8':
+            self.lines.append((x, y))
         elif layoutChar == 'S':
             self.slowpills.append((x,y))
         elif layoutChar == 'P':

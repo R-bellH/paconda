@@ -211,7 +211,6 @@ class PacmanGraphics:
         self.food = self.drawFood(layout.food)
         self.capsules = self.drawCapsules(layout.capsules)
         self.slowpills = self.drawSlowPills(layout.slowpills)
-
         refresh()
 
     def drawAgentObjects(self, state):
@@ -570,6 +569,7 @@ class PacmanGraphics:
                               width = 1)
             pillImages[pill] = dot
         return pillImages
+
     def removeFood(self, cell, foodImages ):
         x, y = cell
         remove_from_screen(foodImages[x][y])

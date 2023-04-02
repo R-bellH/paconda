@@ -404,7 +404,7 @@ class GridGhost(GhostAgent):
                     for n in range(int(floor(j * self.layout.height / self.height)), int(ceil((j+1) * self.layout.height / self.height))):
                         if self.layout.isWall((m, n)):
                             self.grid[i, j] = False
-        self.print_grid()
+        #self.print_grid()
 
     def find_next_tile(self, pos, pacman_position):     # Call dfs on the grid to find the next tile to move to
         next_tile = self.bfs_on_grid(self.position_to_grid(pos), self.position_to_grid(pacman_position))
@@ -459,25 +459,17 @@ class GridGhost(GhostAgent):
         return self.grid[int(x), int(y)]
 
     def print_grid(self):
-        g = self.grid
-        g[int(self.pp[0]), int(self.pp[1])] = 'P'
-        g[int(self.mp[0]), int(self.mp[1])] = 'G'
-
         print('\n'.join([' '.join(['{:4}'.format(item)
                                     for item in row])
-                                    for row in reversed(np.transpose(g))]))
+                                    for row in reversed(np.transpose(self.grid))]))
 
-from My_PRM import Vertex
-
-from graphicsUtils import line
 
 class RRTGhost(GhostAgent):
     """
     A ghost that only know the world via RRT    """
 
-    def __init__(self, index, layout=None, prob_attack=0.99, prob_scaredFlee=0.99, goal_prob=0.2, step_size=1):
+    def __init__(self, index, layout=None, prob_attack=0.99, prob_scaredFlee=0.99, goal_prob=0.2, step_size=1, max_v_in_tree=300):
         GhostAgent.__init__(self, index)
-        #line((0, layout.height/2), (layout.width, layout.height/2), (1,1,1))
         self.index = index
         self.layout = layout
         print("RRT ghost Index: ", index)
@@ -489,6 +481,7 @@ class RRTGhost(GhostAgent):
         self.goal_prob = goal_prob
         self.step_size = step_size
         self.next_node = self.start
+        self.max_v_in_tree = max_v_in_tree
 
     def getDistribution(self, state):
         ghost_state = state.getGhostState(self.index)
@@ -504,9 +497,8 @@ class RRTGhost(GhostAgent):
         if is_scared: speed = speed_rnd() * 0.5
         action_vectors = [Actions.directionToVector(a, speed) for a in legal_actions]
         new_positions = [(pos[0] + a[0], pos[1] + a[1]) for a in action_vectors]
-
-#        if self.is_in_node(pos):
-        self.next_node = self.find_next_node(pos, pacman_position)
+        if self.is_in_node(pos):
+            self.next_node = self.find_next_node(pos, pacman_position)
 
         # Select best actions given the state
         distances_to_next_node = [manhattanDistance(pos, self.next_node) for pos in new_positions]
@@ -524,21 +516,20 @@ class RRTGhost(GhostAgent):
         for a in best_actions: dist[a] = best_prob / len(best_actions)
         for a in legal_actions: dist[a] += (1 - best_prob) / len(legal_actions)
         dist.normalize()
- #       open('prm_edges_for_ghost_' + str(self.index) + '.txt', 'w').write(str(self.prm.edges))
- #       open('prm_vertices_for_ghost_' + str(self.index) + '.txt', 'w').write(str(self.prm.vertices))
+
         return dist
 
     def find_next_node(self, pos, pacman_position):
-        path = self.RRT(pos, pacman_position)
+        path = self.RRT(pos, pacman_position, self.max_v_in_tree)
         if path is None:
             # make step smaller?
             return self.next_node
         return path
 
-    def RRT(self, pos, pac_pos):
+    def RRT(self, pos, pac_pos, max_v=300): # gets a two points and the maximum number of vertices to compute and runs RRT
         goal_reached = False
         trre = [(pos, 0)]
-        counter = 200
+        counter = 600
         while not goal_reached and counter:
             counter -= 1
             point = self.sample_point(self.layout.width, self.layout.height, pac_pos, self.goal_prob)
@@ -575,60 +566,12 @@ class RRTGhost(GhostAgent):
             point = [x, y]
         return point
 
-    def order_by_distance(self, v):
-        return sorted(self.prm.vertices, key=lambda x: manhattanDistance(v, x))
-
-    def establish_edges(self):  # connect each node to some of it's nearest neighbors
-        for v in self.prm.vertices:
-            d = self.degree
-            for w in self.order_by_distance(v):
-                if d == 0:
-                    break
-                if not self.collision(v, w):
-                    self.prm.connect(self.prm.vertices[v], self.prm.vertices[w])
-                    d -= 1
-
-    def buildPRM(self, num_samples=100):
-        samples = self.sample_space(self.layout.width, self.layout.height, num_samples)
-        print("samples: ", samples)
-        self.prm = Roadmap(samples)
-        print("prm: ", self.prm.vertices)
-        print(self.prm.vertices[samples[0]].edges)
-        self.establish_edges()
-        # save prm edges to a file to view
-        with open('prm_edges_for_ghost_' + str(self.index) + '.txt', 'w') as f:
-            f.write(str(self.prm.edges))
-
-    def add_to_prm(self, v,):
-        """In order to avoid adding too many nodes (slows the game) we only add a node it if's far enough from the
-        closest node or if they have a wall between them"""
-        v = (round(v[0], 3), round(v[1], 3))
-        self.prm.add([v])
-        neighbors = self.order_by_distance(v)
-        d = self.degree
-        for w in neighbors:
-            if d == 0:
-                break
-            if not self.collision(v, w):
-                # print("adding edge: ", v, w)
-                self.prm.connect(self.prm.vertices[v], self.prm.vertices[w])
-                d -= 1
-
-    def not_wall(self, (x, y)):
-        """it's probably not a wall"""
-        if x == int(x) and y == int(y):
-            if self.layout.isWall((x, y)):
-                return True
-        return False
-
-    def is_in_node(self, v, tolerance=1):
-        """check if a vertex is in a node"""
+    def is_in_node(self, v, tolerance=1.5):
+        """check if a vertex is in the next node"""
         x, y = round(v[0], 3), round(v[1], 3)
-        xs = map(lambda x: round(x[0], 3), self.prm.vertices.keys())
-        ys = map(lambda x: round(x[1], 3), self.prm.vertices.keys())
-        for i in range(len(xs)):
-            if manhattanDistance((x, y), (xs[i], ys[i])) < tolerance:
-                return True
+        xn, yn = round(self.next_node[0], 3), round(self.next_node[1], 3)
+        if manhattanDistance((x, y), (xn, yn)) < tolerance:
+            return True
         return False
 
     def collision(self, start, end):
