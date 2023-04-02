@@ -463,6 +463,7 @@ class GridGhost(GhostAgent):
                                     for item in row])
                                     for row in reversed(np.transpose(self.grid))]))
 
+import math
 
 class RRTGhost(GhostAgent):
     """
@@ -516,11 +517,10 @@ class RRTGhost(GhostAgent):
         for a in best_actions: dist[a] = best_prob / len(best_actions)
         for a in legal_actions: dist[a] += (1 - best_prob) / len(legal_actions)
         dist.normalize()
-
         return dist
 
     def find_next_node(self, pos, pacman_position):
-        path = self.RRT(pos, pacman_position, self.max_v_in_tree)
+        path = self.RRT_with_step(pos, pacman_position, self.max_v_in_tree)
         if path is None:
             # make step smaller?
             return self.next_node
@@ -528,12 +528,12 @@ class RRTGhost(GhostAgent):
 
     def RRT(self, pos, pac_pos, max_v=300): # gets a two points and the maximum number of vertices to compute and runs RRT
         goal_reached = False
-        trre = [(pos, 0)]
-        counter = 600
+        trre = [(pos, 0)] # list of Tree points and their father node in the graph
+        counter = max_v # maximum number of point to expand
         while not goal_reached and counter:
             counter -= 1
             point = self.sample_point(self.layout.width, self.layout.height, pac_pos, self.goal_prob)
-            min_dis = manhattanDistance(pos, point)
+            min_dis = 999999999999
             father = None
             for v in trre:
                 if not self.collision(v[0], point):
@@ -555,6 +555,59 @@ class RRTGhost(GhostAgent):
             return None
 
         return path[-1]
+
+    def RRT_with_step(self, pos, pac_pos, max_v=500, step_size=6): # gets a two points and the maximum number of vertices to compute and runs RRT
+        goal_reached = False
+        trre = [(pos, 0)]
+        counter = max_v
+        p2 = None
+        while not goal_reached and counter:
+            counter -= 1
+            point = self.sample_point(self.layout.width, self.layout.height, pac_pos, self.goal_prob)
+            min_dis = 999999999999
+            father = None
+            for v in trre:
+                p2 = self.step(v[0], point, step_size)
+                if self.out_of_bounds(p2):
+                    p2 = point
+                if not self.collision(v[0], p2):
+                    if manhattanDistance(v[0], point) <= min_dis:
+                        min_dis = manhattanDistance(v[0], point)
+                        father = trre.index(v)
+            if father is not None:
+                trre.append((p2, father))
+                if manhattanDistance(p2, pac_pos) < 1.5:
+                    goal_reached = True
+
+        path = []
+        p = trre[-1]
+        while p[0] != pos:
+            path.append(p[0])
+            p = trre[p[1]]
+
+        if len(path) is 0:
+            return None
+
+        return path[-1]
+
+    def out_of_bounds(self, point):
+        x, y = point[0], point[1]
+        if 0 <= x <= self.layout.width and 0 <= y <= self.layout.height:
+            return False
+        return True
+
+    def step(self, start_point, end_point, step_size):
+        x1, y1 = start_point[0], start_point[1]
+        x2, y2 = end_point[0], end_point[1]
+
+        # 3.1. Calculate the vector length
+        vector_length = math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+        # 3.2. Calculate the unit vector in the direction of the vector
+        unit_vector = ((x2 - x1) / vector_length, (y2 - y1) / vector_length)
+        # 3.3. asign step
+        step_vector = (unit_vector[0] * step_size, unit_vector[1] * step_size)
+        step_point = (x1 + step_vector[0], y1 + step_vector[1])
+        return step_point
 
     def sample_point(self, width, height, goal, goal_prob):
         p = np.random.uniform()
