@@ -95,7 +95,7 @@ class PRMGhost(GhostAgent):
     """
     A ghost that only know the world via PRM    """
 
-    def __init__(self, index, layout=None, prob_attack=0.99, prob_scaredFlee=0.99, samples=100, degree=5):
+    def __init__(self, index, layout=None, prob_attack=0.99, prob_scaredFlee=0.99, samples=1000, degree=5):
         GhostAgent.__init__(self, index)
         self.index = index
         self.layout = layout
@@ -154,6 +154,7 @@ class PRMGhost(GhostAgent):
             v = (round(random.uniform(1, self.layout.width - 1), 3), round(random.uniform(1, self.layout.height - 1), 3))
             self.add_to_prm(v)
             return self.next_node
+        open("PRM_current_path_of"+str(self.index)+".txt", 'w').write(str(path))
         return path[1]
 
     #### PRM ####
@@ -354,7 +355,7 @@ class GridGhost(GhostAgent):
         self.mp = (0,0)
         self.build_grid(grid_size)
         self.next_tile = [self.position_to_grid(self.start)[0], self.position_to_grid(self.start)[1]]
-
+        open('grids_for_ghost_' + str(self.index) + '.txt', 'w').write((str((self.layout.width,self.layout.height))))
 
     def getDistribution(self, state):
         ghost_state = state.getGhostState(self.index)
@@ -485,6 +486,7 @@ class RRTGhost(GhostAgent):
         self.step_size = step_size
         self.next_node = self.start
         self.max_v_in_tree = max_v_in_tree
+        open('rrt_tree_for_ghost_' + str(self.index) + '.txt', 'w').write('')
 
     def getDistribution(self, state):
         ghost_state = state.getGhostState(self.index)
@@ -524,7 +526,7 @@ class RRTGhost(GhostAgent):
     def find_next_node(self, pos, pacman_position):
         path = self.RRT_with_step(pos, pacman_position, self.max_v_in_tree)
         if path is None:
-            # make step smaller?
+            # make step_vector smaller?
             return self.next_node
         return path
 
@@ -542,12 +544,12 @@ class RRTGhost(GhostAgent):
                     if manhattanDistance(v[0], point) <= min_dis:
                         min_dis = manhattanDistance(v[0], point)
                         father = trre.index(v)
+            open('rrt_tree_for_ghost_' + str(self.index) + '.txt', 'a').write(str(trre))
+            open('rrt_tree_for_ghost_' + str(self.index) + '.txt', 'a').write('\n')
             if father is not None:
                 trre.append((point, father))
                 if manhattanDistance(point, pac_pos) < 1.5:
                     goal_reached = True
-        open('rrt_tree_for_ghost_' + str(self.index) + '.txt', 'a').write(str(trre))
-        open('rrt_tree_for_ghost_' + str(self.index) + '.txt', 'a').write('\n')
         path = []
         p = trre[-1]
         while p[0] != pos:
@@ -559,10 +561,10 @@ class RRTGhost(GhostAgent):
 
         return path[-1]
 
-    def RRT_with_step(self, pos, pac_pos, max_v=500, step_size=6): # gets a two points and the maximum number of vertices to compute and runs RRT
+    def RRT_with_step(self, pos, pac_pos, max_v=500, step_size=3): # gets a two points and the maximum number of vertices to compute and runs RRT
         goal_reached = False
         trre = [(pos, 0)]
-        counter = max_v
+        counter =max_v
         p2 = None
         while not goal_reached and counter:
             counter -= 1
@@ -570,7 +572,7 @@ class RRTGhost(GhostAgent):
             min_dis = 999999999999
             father = None
             for v in trre:
-                p2 = self.step(v[0], point, step_size)
+                p2 = self.step_vector(v[0], point, step_size)
                 if self.out_of_bounds(p2):
                     p2 = point
                 if not self.collision(v[0], p2):
@@ -581,7 +583,8 @@ class RRTGhost(GhostAgent):
                 trre.append((p2, father))
                 if manhattanDistance(p2, pac_pos) < 1.5:
                     goal_reached = True
-
+        open('rrt_tree_for_ghost_' + str(self.index) + '.txt', 'a').write(str(trre))
+        open('rrt_tree_for_ghost_' + str(self.index) + '.txt', 'a').write('\n')
         path = []
         p = trre[-1]
         while p[0] != pos:
@@ -599,7 +602,7 @@ class RRTGhost(GhostAgent):
             return False
         return True
 
-    def step(self, start_point, end_point, step_size):
+    def step_vector(self, start_point, end_point, step_size):
         x1, y1 = start_point[0], start_point[1]
         x2, y2 = end_point[0], end_point[1]
 
@@ -607,7 +610,7 @@ class RRTGhost(GhostAgent):
         vector_length = math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
         # 3.2. Calculate the unit vector in the direction of the vector
         unit_vector = ((x2 - x1) / vector_length, (y2 - y1) / vector_length)
-        # 3.3. asign step
+        # 3.3. asign step_vector
         step_vector = (unit_vector[0] * step_size, unit_vector[1] * step_size)
         step_point = (x1 + step_vector[0], y1 + step_vector[1])
         return step_point
