@@ -29,17 +29,21 @@ def show_PRM(ghost_num):
     print(len(G.nodes))
     # Draw the graph
     pos = {node: (G.nodes[node]['x'],G.nodes[node]['y']) for node in G.nodes()}
-    nx.draw(G, pos, with_labels=False, node_size=1, node_color='r', width=0.5, alpha=0.5,edge_color='b')
+    nx.draw(G, pos, with_labels=False, node_size=1, node_color='r', width=0.5, alpha=0.3,edge_color='b')
     # color the chosen path
     path_nx=nx.Graph()
     with open ('PRM_current_path_of'+ghost_num+'.txt') as f:
         path=eval(f.read())
-        path_nx.add_node(path[0],x=path[0][0],y=path[0][1])
-        for i in range(len(path)-1):
-            path_nx.add_node(path[i+1],x=path[i][0],y=path[i][1])
-            path_nx.add_edge(path[i],path[i+1])
-    pos_path = {node: (path_nx.nodes[node]['x'],path_nx.nodes[node]['y']) for node in path_nx.nodes()}
-    nx.draw(path_nx,pos_path, with_labels=False,node_size=1,node_color='g',witdh=.5,alph=0.7,edge_color='g')
+        if len(path)>=1:
+            path_nx.add_node(path[0],x=path[0][0],y=path[0][1])
+            for i in range(len(path)-1):
+                path_nx.add_node(path[i+1],x=path[i][0],y=path[i][1])
+                path_nx.add_edge(path[i],path[i+1])
+        pos_path = {node: (path_nx.nodes[node]['x'],path_nx.nodes[node]['y']) for node in path_nx.nodes()}
+        nx.draw(path_nx,pos_path, with_labels=False,node_size=1,node_color='g',witdh=.5,alph=0.7,edge_color='g')
+    plt.text(0.5, 0.5, "PRM")
     plt.show()
 
-show_PRM('1')
+if __name__ == '__main__':
+    show_PRM('1')
+    show_PRM('2')
