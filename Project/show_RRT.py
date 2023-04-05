@@ -18,13 +18,14 @@ def show_RRT(ghost_index):
     path_nx = nx.Graph()
     with open('rrt_current_path_for_ghost_'+str(ghost_index)+'.txt') as f:
         path = eval(f.read())
-        path_nx.add_node(path[0], x=path[0][0], y=path[0][1])
-        for i in range(len(path) - 1):
-            path_nx.add_node(path[i + 1], x=path[i][0], y=path[i][1])
-            path_nx.add_edge(path[i], path[i + 1])
-    pos_path = {node: (path_nx.nodes[node]['x'], path_nx.nodes[node]['y']) for node in path_nx.nodes()}
-    nx.draw(path_nx, pos_path, with_labels=False, node_size=1, node_color='g', witdh=.5, alph=0.7, edge_color='g')
+        if len(path)>=1:
+            path_nx.add_node(path[0], x=path[0][0], y=path[0][1])
+            for i in range(len(path) - 1):
+                path_nx.add_node(path[i + 1], x=path[i][0], y=path[i][1])
+                path_nx.add_edge(path[i], path[i + 1])
+        pos_path = {node: (path_nx.nodes[node]['x'], path_nx.nodes[node]['y']) for node in path_nx.nodes()}
+        nx.draw(path_nx, pos_path, with_labels=False, node_size=1, node_color='g', witdh=.5, alph=0.7, edge_color='g')
     plt.text(0.5, 0.5, "RRT")
     plt.show()
 if __name__ == '__main__':
-    show_RRT(1)
+    show_RRT("1")

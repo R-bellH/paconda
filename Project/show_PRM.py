@@ -41,8 +41,9 @@ def show_PRM(ghost_num):
                 path_nx.add_edge(path[i],path[i+1])
         pos_path = {node: (path_nx.nodes[node]['x'],path_nx.nodes[node]['y']) for node in path_nx.nodes()}
         nx.draw(path_nx,pos_path, with_labels=False,node_size=1,node_color='g',witdh=.5,alph=0.7,edge_color='g')
-    plt.text(0.5,0.5,"PRM")
+    plt.text(0.5, 0.5, "PRM")
     plt.show()
 
 if __name__ == '__main__':
     show_PRM('1')
+    show_PRM('2')

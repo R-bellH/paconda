@@ -7,8 +7,8 @@ colormap = colors.ListedColormap(["red", "green"])
 frames = []
 
 
-def int(bool):
-    return 1 if bool else 0
+# def int(bool):
+#     return 1 if bool else 0
 def show_Grid(ghost_index):
     with open("grids_for_ghost_"+str(ghost_index)+".txt") as f:
         grid = []

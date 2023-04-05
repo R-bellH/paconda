@@ -322,7 +322,7 @@ class FlankGhost(PRMGhost):
 '''A ghost that uses A* to find the shortest path to pacman'''
 class AStarGhost(PRMGhost):
 
-    def __init__(self, index, state=None, prob_attack=0.99, prob_scaredFlee=0.99, samples=100, degree=7):
+    def __init__(self, index, state=None, prob_attack=0.99, prob_scaredFlee=0.99, samples=300, degree=7):
         PRMGhost.__init__(self, index, state, prob_attack, prob_scaredFlee, samples, degree)
 
     def find_next_node(self, pos, pacman_position):
@@ -331,6 +331,7 @@ class AStarGhost(PRMGhost):
             v = (round(random.uniform(1, self.layout.width - 1), 3), round(random.uniform(1, self.layout.height - 1), 3))
             self.add_to_prm(v)
             return self.next_node
+        open("PRM_current_path_of"+str(self.index)+".txt", 'w').write(str(path))
         return path[1]
 
 
