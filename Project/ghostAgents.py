@@ -95,7 +95,7 @@ from math import ceil, floor
 class PRMGhost(GhostAgent):
     """
     A ghost that only know the world via PRM    """
-    def __init__(self, index, layout=None, prob_attack=0.99, prob_scaredFlee=0.99, samples=1000, degree=7):
+    def __init__(self, index, layout=None, prob_attack=0.99, prob_scaredFlee=0.99, samples=300, degree=7):
         GhostAgent.__init__(self, index)
         self.index = index
         self.layout = layout
@@ -592,7 +592,7 @@ class RRTGhost(GhostAgent):
         while p[0] != pos:
             path.append(p[0])
             p = trre[p[1]]
-
+        open('rrt_current_path_for_ghost_'+str(self.index)+'.txt','w').write(str(path))
         if len(path) is 0:
             return None
 
