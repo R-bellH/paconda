@@ -19,6 +19,7 @@ import random
 from util import manhattanDistance, bresenham
 import util
 import numpy as np
+import time
 
 class GhostAgent(Agent):
     def __init__(self, index, state=None):
@@ -102,7 +103,7 @@ class PRMGhost(GhostAgent):
         print("PRM ghost Index: ", index)
         self.start = layout.agentPositions[index][1]
         self.start = (round(self.start[0], 3), round(self.start[1], 3))
-        print(self.start)
+        #print(self.start)
         self.prob_attack = prob_attack
         self.prob_scaredFlee = prob_scaredFlee
         self.buildPRM(samples)
@@ -179,10 +180,10 @@ class PRMGhost(GhostAgent):
 
     def buildPRM(self, num_samples=100):
         samples = self.sample_space(self.layout.width, self.layout.height, num_samples)
-        print("samples: ", samples)
+        #print("samples: ", samples)
         self.prm = Roadmap(samples)
-        print("prm: ", self.prm.vertices)
-        print(self.prm.vertices[samples[0]].edges)
+        #print("prm: ", self.prm.vertices)
+        #print(self.prm.vertices[samples[0]].edges)
         self.establish_edges()
         # save prm edges to a file to view
         with open('prm_edges_for_ghost_' + str(self.index) + '.txt', 'w') as f:
@@ -343,7 +344,7 @@ class GridGhost(GhostAgent):
         print("Grid ghost Index: ", index)
         self.layout = layout
         self.start = layout.agentPositions[index][1]
-        print(self.start)
+        #print(self.start)
         self.prob_attack = prob_attack
         self.prob_flee = prob_flee
         self.grid_size = None
@@ -396,7 +397,7 @@ class GridGhost(GhostAgent):
         g = float(self.layout.width) / float(grid_size)
         self.width = int(floor(self.layout.width / g))
         self.height = int(floor(self.layout.height / g))
-        print "g {} w {} h {}".format(g, self.width, self.height)
+        #print "g {} w {} h {}".format(g, self.width, self.height)
         self.grid = np.ones((self.width, self.height), bool)
         for i in range(self.width):
             for j in range(self.height):
@@ -429,7 +430,7 @@ class GridGhost(GhostAgent):
         start = int(start[0]), int(start[1])
         end = int(end[0]), int(end[1])
         if not self.grid_free(start[0], start[1]) or not self.grid_free(end[0], end[1]):
-            print('No path found between {} and {}'.format(start, end))
+            #print('No path found between {} and {}'.format(start, end))
             return None
         if manhattanDistance(start, end) < 2:
             return end
@@ -452,7 +453,7 @@ class GridGhost(GhostAgent):
             for n in neighbors:
                 if n not in visited:
                     q.append(n)
-        print('No path found between {} and {}'.format(start, end))
+        #print('No path found between {} and {}'.format(start, end))
         return None
 
     def grid_free(self, x, y):
@@ -478,7 +479,7 @@ class RRTGhost(GhostAgent):
         print("RRT ghost Index: ", index)
         self.start = layout.agentPositions[index][1]
         self.start = (round(self.start[0], 3), round(self.start[1], 3))
-        print(self.start)
+        #print(self.start)
         self.prob_attack = prob_attack
         self.prob_scaredFlee = prob_scaredFlee
         self.goal_prob = goal_prob
@@ -560,11 +561,11 @@ class RRTGhost(GhostAgent):
 
         return path[-1]
 
-    def RRT_with_step(self, pos, pac_pos, max_v=500, step_size=3): # gets a two points and the maximum number of vertices to compute and runs RRT
+    def RRT_with_step(self, pos, pac_pos, max_v=500, step_size=1): # gets a two points and the maximum number of vertices to compute and runs RRT
         goal_reached = False
         trre = [(pos, 0)]
-        counter =max_v
-        p2 = None
+        counter = max_v
+        step_point = None
         while not goal_reached and counter:
             counter -= 1
             point = self.sample_point(self.layout.width, self.layout.height, pac_pos, self.goal_prob)
@@ -578,12 +579,14 @@ class RRTGhost(GhostAgent):
                     if manhattanDistance(v[0], point) <= min_dis:
                         min_dis = manhattanDistance(v[0], point)
                         father = trre.index(v)
+                        step_point = p2
             if father is not None:
-                trre.append((p2, father))
-                if manhattanDistance(p2, pac_pos) < 1.5:
+                trre.append((step_point, father))
+                if manhattanDistance(step_point, pac_pos) < 1.5:
                     goal_reached = True
         open('rrt_tree_for_ghost_' + str(self.index) + '.txt', 'a').write(str(trre))
         open('rrt_tree_for_ghost_' + str(self.index) + '.txt', 'a').write('\n')
+        #print("rrt tree")
         path = []
         p = trre[-1]
         while p[0] != pos:
@@ -597,7 +600,7 @@ class RRTGhost(GhostAgent):
 
     def out_of_bounds(self, point):
         x, y = point[0], point[1]
-        if 0 <= x <= self.layout.width and 0 <= y <= self.layout.height:
+        if 0 <= x < self.layout.width and 0 <= y < self.layout.height:
             return False
         return True
 
@@ -609,7 +612,7 @@ class RRTGhost(GhostAgent):
         vector_length = math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
         # 3.2. Calculate the unit vector in the direction of the vector
         unit_vector = ((x2 - x1) / vector_length, (y2 - y1) / vector_length)
-        # 3.3. asign step_vector
+        # 3.3. assign step
         step_vector = (unit_vector[0] * step_size, unit_vector[1] * step_size)
         step_point = (x1 + step_vector[0], y1 + step_vector[1])
         return step_point
