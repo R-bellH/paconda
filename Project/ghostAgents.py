@@ -96,7 +96,7 @@ class PRMGhost(GhostAgent):
     """
     A ghost that only know the world via PRM    """
 
-    def __init__(self, index, layout=None, prob_attack=0.99, prob_scaredFlee=0.99, samples=100, degree=5):
+    def __init__(self, index, layout=None, prob_attack=0.99, prob_scaredFlee=0.99, samples=1000, degree=5):
         GhostAgent.__init__(self, index)
         self.index = index
         self.layout = layout
@@ -155,6 +155,7 @@ class PRMGhost(GhostAgent):
             v = (round(random.uniform(1, self.layout.width - 1), 3), round(random.uniform(1, self.layout.height - 1), 3))
             self.add_to_prm(v)
             return self.next_node
+        open("PRM_current_path_of"+str(self.index)+".txt", 'w').write(str(path))
         return path[1]
 
     #### PRM ####
@@ -355,7 +356,7 @@ class GridGhost(GhostAgent):
         self.mp = (0,0)
         self.build_grid(grid_size)
         self.next_tile = [self.position_to_grid(self.start)[0], self.position_to_grid(self.start)[1]]
-
+        open('grids_for_ghost_' + str(self.index) + '.txt', 'w').write((str((self.layout.width,self.layout.height))))
 
     def getDistribution(self, state):
         ghost_state = state.getGhostState(self.index)
@@ -405,10 +406,8 @@ class GridGhost(GhostAgent):
                     for n in range(int(floor(j * self.layout.height / self.height)), int(ceil((j+1) * self.layout.height / self.height))):
                         if self.layout.isWall((m, n)):
                             self.grid[i, j] = False
-        open('grids_for_ghost_' + str(self.index) + '.txt', 'a').write('\n'.join([' '.join(['{:1}'.format(item)
-                                    for item in row])
-                                    for row in reversed(np.transpose(self.grid))]))
-        open('grids_for_ghost_' + str(self.index) + '.txt', 'a').write('\n\n')
+        open('grids_for_ghost_' + str(self.index) + '.txt', 'a').write((str(self.grid)))
+        open('grids_for_ghost_' + str(self.index) + '.txt', 'a').write(str(self.grid_size) + '\n')
         # self.print_grid()
 
     def find_next_tile(self, pos, pacman_position):     # Call dfs on the grid to find the next tile to move to
@@ -488,6 +487,7 @@ class RRTGhost(GhostAgent):
         self.step_size = step_size
         self.next_node = self.start
         self.max_v_in_tree = max_v_in_tree
+        open('rrt_tree_for_ghost_' + str(self.index) + '.txt', 'w').write('')
 
     def getDistribution(self, state):
         ghost_state = state.getGhostState(self.index)
@@ -527,7 +527,7 @@ class RRTGhost(GhostAgent):
     def find_next_node(self, pos, pacman_position):
         path = self.RRT_with_step(pos, pacman_position, self.max_v_in_tree)
         if path is None:
-            # make step smaller?
+            # make step_vector smaller?
             return self.next_node
         return path
 
@@ -545,12 +545,12 @@ class RRTGhost(GhostAgent):
                     if manhattanDistance(v[0], point) <= min_dis:
                         min_dis = manhattanDistance(v[0], point)
                         father = trre.index(v)
+            open('rrt_tree_for_ghost_' + str(self.index) + '.txt', 'a').write(str(trre))
+            open('rrt_tree_for_ghost_' + str(self.index) + '.txt', 'a').write('\n')
             if father is not None:
                 trre.append((point, father))
                 if manhattanDistance(point, pac_pos) < 1.5:
                     goal_reached = True
-        open('rrt_tree_for_ghost_' + str(self.index) + '.txt', 'a').write(str(trre))
-        open('rrt_tree_for_ghost_' + str(self.index) + '.txt', 'a').write('\n')
         path = []
         p = trre[-1]
         while p[0] != pos:

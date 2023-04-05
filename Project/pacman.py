@@ -554,13 +554,13 @@ def readCommand( argv ):
         options.numIgnore = int(agentOpts['numTrain'])
 
     # Choose a ghost agent
-    #ghostType = loadAgent(options.ghost, noKeyboard)
-    #args['ghosts'] = [ghostType( i+1,args['layout'] ) for i in range( options.numGhosts )]
+    # ghostType = loadAgent(options.ghost, noKeyboard)
+    # args['ghosts'] = [ghostType( i+1,args['layout'] ) for i in range( options.numGhosts )]
     args['ghosts'] = []
-    args['ghosts'].append(loadAgent('GridGhost', noKeyboard)(1, args['layout']))
-    args['ghosts'].append(loadAgent('FlankGhost', noKeyboard)(2, args['layout']))
-    args['ghosts'].append(loadAgent('PRMGhost', noKeyboard)(3, args['layout']))
-    args['ghosts'].append(loadAgent('RRTGhost', noKeyboard)(4, args['layout']))
+    args['ghosts'].append(loadAgent('PRMGhost', noKeyboard)(1, args['layout']))
+    # args['ghosts'].append(loadAgent('FlankGhost', noKeyboard)(2, args['layout']))
+    # args['ghosts'].append(loadAgent('PRMGhost', noKeyboard)(3, args['layout']))
+    # args['ghosts'].append(loadAgent('PRMGhost', noKeyboard)(4, args['layout']))
 
     # Choose a display format
     if options.quietGraphics:
