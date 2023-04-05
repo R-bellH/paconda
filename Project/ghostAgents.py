@@ -356,7 +356,7 @@ class GridGhost(GhostAgent):
         self.mp = (0,0)
         self.build_grid(grid_size)
         self.next_tile = [self.position_to_grid(self.start)[0], self.position_to_grid(self.start)[1]]
-        open('grids_for_ghost_' + str(self.index) + '.txt', 'w').write((str((self.layout.width,self.layout.height))))
+        #open('grids_for_ghost_' + str(self.index) + '.txt', 'w').write((str((self.layout.width,self.layout.height))))
 
     def getDistribution(self, state):
         ghost_state = state.getGhostState(self.index)
@@ -406,8 +406,10 @@ class GridGhost(GhostAgent):
                     for n in range(int(floor(j * self.layout.height / self.height)), int(ceil((j+1) * self.layout.height / self.height))):
                         if self.layout.isWall((m, n)):
                             self.grid[i, j] = False
-        open('grids_for_ghost_' + str(self.index) + '.txt', 'a').write((str(self.grid)))
-        open('grids_for_ghost_' + str(self.index) + '.txt', 'a').write(str(self.grid_size) + '\n')
+        open('grids_for_ghost_' + str(self.index) + '.txt', 'a').write('\n'.join([' '.join(['{:1}'.format(item)
+                                    for item in row])
+                                    for row in reversed(np.transpose(self.grid))]))
+        open('grids_for_ghost_' + str(self.index) + '.txt', 'a').write('\n\n')
         # self.print_grid()
 
     def find_next_tile(self, pos, pacman_position):     # Call dfs on the grid to find the next tile to move to
