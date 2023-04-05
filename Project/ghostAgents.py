@@ -94,8 +94,7 @@ from math import ceil, floor
 class PRMGhost(GhostAgent):
     """
     A ghost that only know the world via PRM    """
-
-    def __init__(self, index, layout=None, prob_attack=0.99, prob_scaredFlee=0.99, samples=1000, degree=5):
+    def __init__(self, index, layout=None, prob_attack=0.99, prob_scaredFlee=0.99, samples=1000, degree=7):
         GhostAgent.__init__(self, index)
         self.index = index
         self.layout = layout
