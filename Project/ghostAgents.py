@@ -425,8 +425,8 @@ class GridGhost(GhostAgent):
         return x, y
 
     def grid_to_position(self, pos):    # Find the positions on the board in the middle of a tile
-        x = floor((pos[0]+0.5) * self.layout.width / self.width)
-        y = floor((pos[1]+0.5) * self.layout.height / self.height)
+        x = floor((pos[0]) * self.layout.width / self.width)
+        y = floor((pos[1]) * self.layout.height / self.height)
         return x, y
 
     def bfs_on_grid(self, start, end):
