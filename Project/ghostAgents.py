@@ -95,7 +95,7 @@ from math import ceil, floor
 class PRMGhost(GhostAgent):
     """
     A ghost that only know the world via PRM    """
-    def __init__(self, index, layout=None, prob_attack=0.99, prob_scaredFlee=0.99, samples=300, degree=7):
+    def __init__(self, index, layout=None, prob_attack=0.99, prob_scaredFlee=0.99, samples=30, degree=7):
         GhostAgent.__init__(self, index)
         self.index = index
         self.layout = layout
@@ -459,6 +459,8 @@ class GridGhost(GhostAgent):
         #print('No path found between {} and {}'.format(start, end))
         return None
 
+    def a_star_on_grid(self,start,end,h=lambda n: 0, distance=manhattanDistance):
+        pass
     def grid_free(self, x, y):
         if x < 0 or self.width <= x or y < 0 or self.height <= y:
             return False
@@ -567,7 +569,7 @@ class RRTGhost(GhostAgent):
     def RRT_with_step(self, pos, pac_pos, max_v=500, step_size=1): # gets a two points and the maximum number of vertices to compute and runs RRT
         goal_reached = False
         trre = [(pos, 0)]
-        counter = max_v
+        counter = -1#max_v
         step_point = None
         while not goal_reached and counter:
             counter -= 1

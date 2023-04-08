@@ -27,5 +27,6 @@ def show_RRT(ghost_index):
         nx.draw(path_nx, pos_path, with_labels=False, node_size=1, node_color='g', witdh=.5, alph=0.7, edge_color='g')
     plt.text(0.5, 0.5, "RRT")
     plt.show()
+    print "nodes: "+str(len(G.nodes()))
 if __name__ == '__main__':
     show_RRT("1")
