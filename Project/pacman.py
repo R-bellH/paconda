@@ -540,8 +540,7 @@ def readCommand( argv ):
 
     # Choose a Pacman agent
     noKeyboard = options.gameToReplay == None and (options.textGraphics or options.quietGraphics)
-    # pacmanType = loadAgent(options.pacman, noKeyboard)
-    pacmanType = loadAgent("GreedyAgent", noKeyboard) #TODO: remove this line
+    pacmanType = loadAgent(options.pacman, noKeyboard)
     agentOpts = parseAgentArgs(options.agentArgs)
     if options.numTraining > 0:
         args['numTraining'] = options.numTraining
@@ -558,8 +557,8 @@ def readCommand( argv ):
     # ghostType = loadAgent(options.ghost, noKeyboard)
     # args['ghosts'] = [ghostType( i+1,args['layout'] ) for i in range( options.numGhosts )]
     args['ghosts'] = []
-    args['ghosts'].append(loadAgent('AStarGhost', noKeyboard)(1, args['layout']))
-    args['ghosts'].append(loadAgent('PRMGhost', noKeyboard)(2, args['layout']))
+    args['ghosts'].append(loadAgent('GridGhost', noKeyboard)(1, args['layout']))
+    #args['ghosts'].append(loadAgent('PRMGhost', noKeyboard)(2, args['layout']))
     # args['ghosts'].append(loadAgent('GridGhost', noKeyboard)(3, args['layout']))
     # args['ghosts'].append(loadAgent('FlankGhost', noKeyboard)(4, args['layout']))
 
