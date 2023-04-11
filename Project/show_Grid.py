@@ -11,6 +11,7 @@ frames = []
 #     return 1 if bool else 0
 def show_Grid(ghost_index):
     with open("grids_for_ghost_"+str(ghost_index)+".txt") as f:
+        print "showing grid of ghost "+str(ghost_index)
         grid = []
         for line in f.readlines():
             if line == "\n":
