@@ -88,14 +88,23 @@ class DirectionalGhost(GhostAgent):
 
 
 ##### PRM ghost #####
-from My_PRM import Roadmap
+from PRM import Roadmap
 from math import ceil, floor
 
 
 class PRMGhost(GhostAgent):
     """
     A ghost that only know the world via PRM    """
-    def __init__(self, index, layout=None, prob_attack=0.99, prob_scaredFlee=0.99, samples=30, degree=7):
+    def __init__(self, index, layout=None, prob_attack=0.99, prob_scaredFlee=0.99, samples=300, degree=20):
+        """
+            :param index: ghost index
+            :param layout: layout of the game
+            :param prob_attack: probability of attacking pacman when not scared
+            :param prob_scaredFlee: probability of fleeing from pacman when scared
+            :param samples: number of samples to build the PRM
+            :param degree: minimal degree for vertex in the PRM
+            *feel free to play with the last two parameters as they have a huge impact on the performance of the PRM*
+        """
         GhostAgent.__init__(self, index)
         self.index = index
         self.layout = layout
@@ -112,6 +121,10 @@ class PRMGhost(GhostAgent):
         self.next_node = self.start
 
     def getDistribution(self, state):
+        """
+        Returns a Counter encoding a distribution over actions from the provided state.
+        here is the main function of the PRM ghost that determines the next action to take
+        """
         ghost_state = state.getGhostState(self.index)
         legal_actions = state.getLegalActions(self.index)
         pos = state.getGhostPosition(self.index)
@@ -149,6 +162,7 @@ class PRMGhost(GhostAgent):
         return dist
 
     def find_next_node(self, pos, pacman_position):
+        """find the next node to go to using dijkstra algorithm"""
         path = self.prm.dijkstra(pos, pacman_position)
         if path is None:
             v = (round(random.uniform(1, self.layout.width - 1), 3), round(random.uniform(1, self.layout.height - 1), 3))
@@ -158,7 +172,9 @@ class PRMGhost(GhostAgent):
         return path[1]
 
     #### PRM ####
+    """ PRM functions """
     def sample_space(self, width, height, n):
+        ''' sample n points uniformly in the space of width x height'''
         samples = []
         for i in range(n):
             samples.append((round(random.uniform(1, width - 1), 3), round(random.uniform(1, height - 1),
@@ -169,6 +185,7 @@ class PRMGhost(GhostAgent):
         return sorted(self.prm.vertices, key=lambda x: manhattanDistance(v, x))
 
     def establish_edges(self):  # connect each node to some of it's nearest neighbors
+        """ connect the sampled nodes to some of their nearest neighbors as dictated by the degree parameter"""
         for v in self.prm.vertices:
             d = self.degree
             for w in self.order_by_distance(v):
@@ -178,7 +195,8 @@ class PRMGhost(GhostAgent):
                     self.prm.connect(self.prm.vertices[v], self.prm.vertices[w])
                     d -= 1
 
-    def buildPRM(self, num_samples=100):
+    def buildPRM(self, num_samples):
+        """build the PRM with num_samples samples"""
         samples = self.sample_space(self.layout.width, self.layout.height, num_samples)
         #print("samples: ", samples)
         self.prm = Roadmap(samples)
@@ -190,7 +208,9 @@ class PRMGhost(GhostAgent):
             f.write(str(self.prm.edges))
 
     def add_to_prm(self, v,):
-        """In order to avoid adding too many nodes (slows the game) we only add a node it if's far enough from the
+        """
+        check whether we should add a node to the PRM and if so add it
+        In order to avoid adding too many nodes (slows the game) we only add a node it if's far enough from the
         closest node or if they have a wall between them"""
         v = (round(v[0], 3), round(v[1], 3))
         self.prm.add([v])
@@ -223,7 +243,7 @@ class PRMGhost(GhostAgent):
 
     def collision(self, start, end):
         """
-        Returns true if there is a wall between the two points going in two stright lines (kinda, i think.)
+        Returns true if there is a wall between two points in the maze, not as trivial as we hoped :(
         """
         walls = self.layout.walls
         x1, y1 = start
@@ -247,17 +267,28 @@ class PRMGhost(GhostAgent):
 
         return False
 
+
 #### Flank ghost ####
 '''A ghost that tries to flank pacman'''
-
-
 class FlankGhost(PRMGhost):
 
-    def __init__(self, index, state=None, prob_attack=0.99, prob_scaredFlee=0.99, samples=100, degree=7):
+    def __init__(self, index, state=None, prob_attack=0.99, prob_scaredFlee=0.99, samples=300, degree=20):
+        """
+            :param index: ghost index
+            :param layout: layout of the game
+            :param prob_attack: probability of attacking pacman when not scared
+            :param prob_scaredFlee: probability of fleeing from pacman when scared
+            :param samples: number of samples to build the PRM
+            :param degree: minimal degree for vertex in the PRM
+            *feel free to play with the last two parameters as they have a huge impact on the performance of the PRM*
+        """
         PRMGhost.__init__(self, index, state, prob_attack, prob_scaredFlee, samples, degree)
         self.prevpacman = state.agentPositions[0][1]
-
     def getDistribution(self, state):
+        """
+        Returns a Counter encoding a distribution over actions from the provided state.
+        modified from the original getDistribution function in PRMGhost class to estimate the next position of pacman
+        """
         other_locations = []
         for agent in range(1, len(state.data.agentStates)):
             if agent != self.index:
@@ -314,6 +345,7 @@ class FlankGhost(PRMGhost):
         return dist
 
     def update_prevpacman(self, state):
+        """ maintain the current and previous position of pacman to extrapolate it's next likely position"""
         pacman_position = state.getPacmanPosition()
         pacman_position = (round(pacman_position[0], 3), round(pacman_position[1], 3))
         self.prevpacman = pacman_position
@@ -322,10 +354,20 @@ class FlankGhost(PRMGhost):
 '''A ghost that uses A* to find the shortest path to pacman'''
 class AStarGhost(PRMGhost):
 
-    def __init__(self, index, state=None, prob_attack=0.99, prob_scaredFlee=0.99, samples=300, degree=7):
+    def __init__(self, index, state=None, prob_attack=0.99, prob_scaredFlee=0.99, samples=300, degree=20):
+        """
+            :param index: ghost index
+            :param layout: layout of the game
+            :param prob_attack: probability of attacking pacman when not scared
+            :param prob_scaredFlee: probability of fleeing from pacman when scared
+            :param samples: number of samples to build the PRM
+            :param degree: minimal degree for vertex in the PRM
+            *feel free to play with the last two parameters as they have a huge impact on the performance of the PRM*
+        """
         PRMGhost.__init__(self, index, state, prob_attack, prob_scaredFlee, samples, degree)
 
     def find_next_node(self, pos, pacman_position):
+        """ find the next node to go to using A* instead of dijkstra as in the simple PRM ghost"""
         path = self.prm.a_star(pos, pacman_position)
         if path is None:
             v = (round(random.uniform(1, self.layout.width - 1), 3), round(random.uniform(1, self.layout.height - 1), 3))
@@ -340,6 +382,13 @@ class GridGhost(GhostAgent):
      A ghost that only knows the world via a Grid, but not the actual grid   """
 
     def __init__(self, index, layout=None, prob_attack=0.99, prob_flee=0.99, grid_size=2):
+        """
+        :param index: ghost index
+        :param layout: layout of the game
+        :param prob_attack: probability of attacking pacman when not scared
+        :param prob_flee: probability of fleeing from pacman when scared
+        :param grid_size: size of the starting grid, higher means the map is more detailed but the path making might take more time
+        """
         GhostAgent.__init__(self, index)
         self.index = index
         print("Grid ghost Index: ", index)
@@ -359,6 +408,9 @@ class GridGhost(GhostAgent):
         #open('grids_for_ghost_' + str(self.index) + '.txt', 'w').write((str((self.layout.width,self.layout.height))))
 
     def getDistribution(self, state):
+        """ Returns a Counter encoding a distribution over actions from the provided state.
+        after converting the state to a grid, the ghost will use the grid to find the best path to the tile where pacman is
+        """
         ghost_state = state.getGhostState(self.index)
         legal_actions = state.getLegalActions(self.index)
         pos = state.getGhostPosition(self.index)
@@ -430,6 +482,7 @@ class GridGhost(GhostAgent):
         return x, y
 
     def bfs_on_grid(self, start, end):
+        """ Breadth First Search on the grid to find the estimated optimal path to pacman and return the next tile to move to pacman"""
         start = int(start[0]), int(start[1])
         end = int(end[0]), int(end[1])
         if not self.grid_free(start[0], start[1]) or not self.grid_free(end[0], end[1]):
@@ -459,8 +512,6 @@ class GridGhost(GhostAgent):
         #print('No path found between {} and {}'.format(start, end))
         return None
 
-    def a_star_on_grid(self,start,end,h=lambda n: 0, distance=manhattanDistance):
-        pass
     def grid_free(self, x, y):
         if x < 0 or self.width <= x or y < 0 or self.height <= y:
             return False
@@ -478,6 +529,16 @@ class RRTGhost(GhostAgent):
     A ghost that only know the world via RRT    """
 
     def __init__(self, index, layout=None, prob_attack=0.99, prob_scaredFlee=0.99, goal_prob=0.2, step_size=1, max_v_in_tree=300):
+        """
+        :param index: index of the ghost
+        :param layout: layout of the game
+        :param prob_attack: probability of attacking pacman
+        :param prob_scaredFlee: probability of fleeing from pacman
+        :param goal_prob: probability of reaching the goal
+        :param step_size: step size of the RRT, distance between node and parent
+        :param max_v_in_tree: maximum number of vertices in the tree before taking action
+        *feel free to play with the last two parameters as they have a huge impact on the performance of the RRT*
+        """
         GhostAgent.__init__(self, index)
         self.index = index
         self.layout = layout
@@ -494,6 +555,11 @@ class RRTGhost(GhostAgent):
         open('rrt_tree_for_ghost_' + str(self.index) + '.txt', 'w').write('')
 
     def getDistribution(self, state):
+        """
+        Returns a Counter encoding a distribution over actions from the provided state.
+        build RRT with a cap on the number of vertices in the tree (max_v_in_tree)
+        and take action towards the next node in the tree on the path to pacman
+        """
         ghost_state = state.getGhostState(self.index)
         legal_actions = state.getLegalActions(self.index)
         pos = state.getGhostPosition(self.index)
@@ -528,10 +594,9 @@ class RRTGhost(GhostAgent):
         dist.normalize()
         return dist
 
-    def find_next_node(self, pos, pacman_position):
+    def find_next_node(self, pos, pacman_position): # finds the next node in the tree on the path to pacman
         path = self.RRT_with_step(pos, pacman_position, self.max_v_in_tree)
         if path is None:
-            # make step_vector smaller?
             return self.next_node
         return path
 
@@ -603,13 +668,13 @@ class RRTGhost(GhostAgent):
 
         return path[-1]
 
-    def out_of_bounds(self, point):
+    def out_of_bounds(self, point): # checks if a point is out of the map (might happen because of the step size)
         x, y = point[0], point[1]
         if 0 <= x < self.layout.width and 0 <= y < self.layout.height:
             return False
         return True
 
-    def step_vector(self, start_point, end_point, step_size):
+    def step_vector(self, start_point, end_point, step_size): # gets two points and a step size and returns the next point in the direction of the second point
         x1, y1 = start_point[0], start_point[1]
         x2, y2 = end_point[0], end_point[1]
 
@@ -622,7 +687,7 @@ class RRTGhost(GhostAgent):
         step_point = (x1 + step_vector[0], y1 + step_vector[1])
         return step_point
 
-    def sample_point(self, width, height, goal, goal_prob):
+    def sample_point(self, width, height, goal, goal_prob): # gets the map size and the goal point and returns a random point in the map
         p = np.random.uniform()
         if p < goal_prob:
             point = goal
@@ -632,8 +697,7 @@ class RRTGhost(GhostAgent):
             point = [x, y]
         return point
 
-    def is_in_node(self, v, tolerance=1.5):
-        """check if a vertex is in the next node"""
+    def is_in_node(self, v, tolerance=1.5): # checks if a vertex is in the next node
         x, y = round(v[0], 3), round(v[1], 3)
         xn, yn = round(self.next_node[0], 3), round(self.next_node[1], 3)
         if manhattanDistance((x, y), (xn, yn)) < tolerance:
@@ -642,7 +706,7 @@ class RRTGhost(GhostAgent):
 
     def collision(self, start, end):
         """
-        Returns true if there is a wall between the two points going in two stright lines (kinda, i think.)
+        Returns true if there is a wall between two points in the maze, not as trivial as we hoped :(
         """
         walls = self.layout.walls
         x1, y1 = start

@@ -494,7 +494,7 @@ def readCommand( argv ):
                       help=default('the number of GAMES to play'), metavar='GAMES', default=1)
     parser.add_option('-l', '--layout', dest='layout',
                       help=default('the LAYOUT_FILE from which to load the map layout'),
-                      metavar='LAYOUT_FILE', default='mediumClassic')
+                      metavar='LAYOUT_FILE', default='smallOpening')
     parser.add_option('-p', '--pacman', dest='pacman',
                       help=default('the agent TYPE in the pacmanAgents module to use'),
                       metavar='TYPE', default='KeyboardAgent')
@@ -504,9 +504,9 @@ def readCommand( argv ):
                       help='Generate minimal output and no graphics', default=False)
     parser.add_option('-g', '--ghosts', dest='ghost',
                       help=default('the ghost agent TYPE in the ghostAgents module to use'),
-                      metavar = 'TYPE', default='RandomGhost')
+                      metavar = 'TYPE', default='RRTGhost')
     parser.add_option('-k', '--numghosts', type='int', dest='numGhosts',
-                      help=default('The maximum number of ghosts to use'), default=4)
+                      help=default('The maximum number of ghosts to use'), default=1)
     parser.add_option('-z', '--zoom', type='float', dest='zoom',
                       help=default('Zoom the size of the graphics window'), default=1.0)
     parser.add_option('-f', '--fixRandomSeed', action='store_true', dest='fixRandomSeed',
@@ -555,10 +555,11 @@ def readCommand( argv ):
         options.numIgnore = int(agentOpts['numTrain'])
 
     # Choose a ghost agent
-    # ghostType = loadAgent(options.ghost, noKeyboard)
-    # args['ghosts'] = [ghostType( i+1,args['layout'] ) for i in range( options.numGhosts )]
-    args['ghosts'] = []
-    args['ghosts'].append(loadAgent('AStarGhost', noKeyboard)(1, args['layout']))
+    # to run more then one ghost, comment out the lines 559 and 560 and uncomment the line 561 and 562-565 (depending on the number of ghosts you want) change the ghosts type as you like, then run pacman.py normally
+    ghostType = loadAgent(options.ghost, noKeyboard)
+    args['ghosts'] = [ghostType( i+1,args['layout'] ) for i in range( options.numGhosts )]
+    # args['ghosts'] = []
+    # args['ghosts'].append(loadAgent('PRMGhost', noKeyboard)(1, args['layout']))
     # args['ghosts'].append(loadAgent('RRTGhost', noKeyboard)(2, args['layout']))
     # args['ghosts'].append(loadAgent('GridGhost', noKeyboard)(3, args['layout']))
     # args['ghosts'].append(loadAgent('FlankGhost', noKeyboard)(4, args['layout']))
