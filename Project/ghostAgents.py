@@ -452,12 +452,14 @@ class GridGhost(GhostAgent):
         self.height = int(floor(self.layout.height / g))
         #print "g {} w {} h {}".format(g, self.width, self.height)
         self.grid = np.ones((self.width, self.height), bool)
+
         for i in range(self.width):
             for j in range(self.height):
                 for m in range(int(floor(i * self.layout.width / self.width)), int(ceil((i+1) * self.layout.width / self.width))):
                     for n in range(int(floor(j * self.layout.height / self.height)), int(ceil((j+1) * self.layout.height / self.height))):
                         if self.layout.isWall((m, n)):
                             self.grid[i, j] = False
+
         open('grids_for_ghost_' + str(self.index) + '.txt', 'a').write('\n'.join([' '.join(['{:1}'.format(item)
                                     for item in row])
                                     for row in reversed(np.transpose(self.grid))]))
@@ -509,7 +511,7 @@ class GridGhost(GhostAgent):
             for n in neighbors:
                 if n not in visited:
                     q.append(n)
-        #print('No path found between {} and {}'.format(start, end))
+        # print('No path found between {} and {}'.format(start, end))
         return None
 
     def grid_free(self, x, y):
@@ -528,7 +530,7 @@ class RRTGhost(GhostAgent):
     """
     A ghost that only know the world via RRT    """
 
-    def __init__(self, index, layout=None, prob_attack=0.99, prob_scaredFlee=0.99, goal_prob=0.2, step_size=1, max_v_in_tree=300):
+    def __init__(self, index, layout=None, prob_attack=0.99, prob_scaredFlee=0.99, goal_prob=0.05, step_size=1, max_v_in_tree=300):
         """
         :param index: index of the ghost
         :param layout: layout of the game
@@ -595,7 +597,7 @@ class RRTGhost(GhostAgent):
         return dist
 
     def find_next_node(self, pos, pacman_position): # finds the next node in the tree on the path to pacman
-        path = self.RRT_with_step(pos, pacman_position, self.max_v_in_tree)
+        path = self.RRT(pos, pacman_position, self.max_v_in_tree)
         if path is None:
             return self.next_node
         return path
@@ -604,10 +606,10 @@ class RRTGhost(GhostAgent):
         goal_reached = False
         trre = [(pos, 0)] # list of Tree points and their father node in the graph
         counter = max_v # maximum number of point to expand
-        while not goal_reached and counter:
+        while (not goal_reached) and counter:
             counter -= 1
             point = self.sample_point(self.layout.width, self.layout.height, pac_pos, self.goal_prob)
-            min_dis = 999999999999
+            min_dis = 999999
             father = None
             for v in trre:
                 if not self.collision(v[0], point):
@@ -618,7 +620,7 @@ class RRTGhost(GhostAgent):
             open('rrt_tree_for_ghost_' + str(self.index) + '.txt', 'a').write('\n')
             if father is not None:
                 trre.append((point, father))
-                if manhattanDistance(point, pac_pos) < 1.5:
+                if manhattanDistance(point, pac_pos) < 2:
                     goal_reached = True
         path = []
         p = trre[-1]
@@ -626,43 +628,6 @@ class RRTGhost(GhostAgent):
             path.append(p[0])
             p = trre[p[1]]
 
-        if len(path) is 0:
-            return None
-
-        return path[-1]
-
-    def RRT_with_step(self, pos, pac_pos, max_v=500, step_size=1): # gets a two points and the maximum number of vertices to compute and runs RRT
-        goal_reached = False
-        trre = [(pos, 0)]
-        counter = -1#max_v
-        step_point = None
-        while not goal_reached and counter:
-            counter -= 1
-            point = self.sample_point(self.layout.width, self.layout.height, pac_pos, self.goal_prob)
-            min_dis = 999999999999
-            father = None
-            for v in trre:
-                p2 = self.step_vector(v[0], point, step_size)
-                if self.out_of_bounds(p2):
-                    p2 = point
-                if not self.collision(v[0], p2):
-                    if manhattanDistance(v[0], point) <= min_dis:
-                        min_dis = manhattanDistance(v[0], point)
-                        father = trre.index(v)
-                        step_point = p2
-            if father is not None:
-                trre.append((step_point, father))
-                if manhattanDistance(step_point, pac_pos) < 1.5:
-                    goal_reached = True
-        open('rrt_tree_for_ghost_' + str(self.index) + '.txt', 'a').write(str(trre))
-        open('rrt_tree_for_ghost_' + str(self.index) + '.txt', 'a').write('\n')
-        #print("rrt tree")
-        path = []
-        p = trre[-1]
-        while p[0] != pos:
-            path.append(p[0])
-            p = trre[p[1]]
-        open('rrt_current_path_for_ghost_'+str(self.index)+'.txt','w').write(str(path))
         if len(path) is 0:
             return None
 
@@ -697,7 +662,7 @@ class RRTGhost(GhostAgent):
             point = [x, y]
         return point
 
-    def is_in_node(self, v, tolerance=1.5): # checks if a vertex is in the next node
+    def is_in_node(self, v, tolerance=2): # checks if a vertex is in the next node
         x, y = round(v[0], 3), round(v[1], 3)
         xn, yn = round(self.next_node[0], 3), round(self.next_node[1], 3)
         if manhattanDistance((x, y), (xn, yn)) < tolerance:
@@ -729,3 +694,45 @@ class RRTGhost(GhostAgent):
                 return True
 
         return False
+
+
+class RRTStepGhost(RRTGhost):
+    """
+    A ghost that only know the world via RRT with fixed step size """
+
+    def RRT(self, pos, pac_pos, max_v=500, step_size=1): # gets a two points and the maximum number of vertices to compute and runs RRT
+        goal_reached = False
+        trre = [(pos, 0)]
+        counter = max_v
+        step_point = None
+        while not goal_reached and counter:
+            counter -= 1
+            point = self.sample_point(self.layout.width, self.layout.height, pac_pos, self.goal_prob)
+            min_dis = 999999
+            father = None
+            for v in trre:
+                p2 = self.step_vector(v[0], point, step_size)
+                if self.out_of_bounds(p2):
+                    p2 = point
+                if not self.collision(v[0], p2):
+                    if manhattanDistance(v[0], point) <= min_dis:
+                        min_dis = manhattanDistance(v[0], point)
+                        father = trre.index(v)
+                        step_point = p2
+            if father is not None:
+                trre.append((step_point, father))
+                if manhattanDistance(step_point, pac_pos) < 1.5:
+                    goal_reached = True
+        open('rrt_tree_for_ghost_' + str(self.index) + '.txt', 'a').write(str(trre))
+        open('rrt_tree_for_ghost_' + str(self.index) + '.txt', 'a').write('\n')
+        # print("rrt tree")
+        path = []
+        p = trre[-1]
+        while p[0] != pos:
+            path.append(p[0])
+            p = trre[p[1]]
+        open('rrt_current_path_for_ghost_'+str(self.index)+'.txt','w').write(str(path))
+        if len(path) is 0:
+            return None
+
+        return path[-1]

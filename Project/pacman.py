@@ -557,7 +557,7 @@ def readCommand( argv ):
     # Choose a ghost agent
     # to run more then one ghost, comment out the lines 559 and 560 and uncomment the line 561 and 562-565 (depending on the number of ghosts you want) change the ghosts type as you like, then run pacman.py normally
     ghostType = loadAgent(options.ghost, noKeyboard)
-    args['ghosts'] = [ghostType( i+1,args['layout'] ) for i in range( options.numGhosts )]
+    args['ghosts'] = [ghostType(i+1, args['layout']) for i in range( options.numGhosts )]
     # args['ghosts'] = []
     # args['ghosts'].append(loadAgent('PRMGhost', noKeyboard)(1, args['layout']))
     # args['ghosts'].append(loadAgent('RRTGhost', noKeyboard)(2, args['layout']))
