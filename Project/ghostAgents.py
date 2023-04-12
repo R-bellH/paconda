@@ -448,18 +448,25 @@ class GridGhost(GhostAgent):
     def build_grid(self, grid_size):    # Create a Grid and find which tiles have obstacles to avoid
         self.grid_size = grid_size
         g = float(self.layout.width) / float(grid_size)
-        self.width = int(floor(self.layout.width / g))
-        self.height = int(floor(self.layout.height / g))
-        #print "g {} w {} h {}".format(g, self.width, self.height)
+        self.width = int(self.layout.width / g)
+        self.height = int(self.layout.height / g)
+        # print "g {} w {} h {}".format(g, self.width, self.height)
         self.grid = np.ones((self.width, self.height), bool)
 
+        for i in range(1, self.layout.width-1):
+            for j in range(1, self.layout.height-1):
+                if self.layout.isWall((i, j)):
+                    for k in range(grid_size):
+                        x,y = self.position_to_grid((i+random.uniform(0,1), j+random.uniform(0,1)))
+                        self.grid[x,y] = False
+        """
         for i in range(self.width):
             for j in range(self.height):
                 for m in range(int(floor(i * self.layout.width / self.width)), int(ceil((i+1) * self.layout.width / self.width))):
                     for n in range(int(floor(j * self.layout.height / self.height)), int(ceil((j+1) * self.layout.height / self.height))):
                         if self.layout.isWall((m, n)):
                             self.grid[i, j] = False
-
+        """
         open('grids_for_ghost_' + str(self.index) + '.txt', 'a').write('\n'.join([' '.join(['{:1}'.format(item)
                                     for item in row])
                                     for row in reversed(np.transpose(self.grid))]))
@@ -474,22 +481,23 @@ class GridGhost(GhostAgent):
         return next_tile
 
     def position_to_grid(self, pos):    # Find which tile contains a position on the board
-        x = floor(pos[0] * self.width / self.layout.width)
-        y = floor(pos[1] * self.height / self.layout.height)
-        return x, y
+        x = floor((pos[0]+0.5) * self.width / self.layout.width)
+        y = floor((pos[1]+0.5) * self.height / self.layout.height)
+        return int(x), int(y)
 
     def grid_to_position(self, pos):    # Find the positions on the board in the middle of a tile
-        x = floor((pos[0]) * self.layout.width / self.width)
-        y = floor((pos[1]) * self.layout.height / self.height)
-        return x, y
+        x = floor((pos[0]+0.5) * self.layout.width / self.width)
+        y = floor((pos[1]+0.5) * self.layout.height / self.height)
+        return int(x), int(y)
 
     def bfs_on_grid(self, start, end):
         """ Breadth First Search on the grid to find the estimated optimal path to pacman and return the next tile to move to pacman"""
         start = int(start[0]), int(start[1])
         end = int(end[0]), int(end[1])
-        if not self.grid_free(start[0], start[1]) or not self.grid_free(end[0], end[1]):
-            #print('No path found between {} and {}'.format(start, end))
+        if (not self.grid_free(start[0], start[1])) or (not self.grid_free(end[0], end[1])):
+            # print('No path found between {} and {}'.format(start, end))
             return None
+        print "boo"
         if manhattanDistance(start, end) < 2:
             return end
         q = [end]

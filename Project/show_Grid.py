@@ -13,12 +13,15 @@ def show_Grid(ghost_index):
     with open("grids_for_ghost_"+str(ghost_index)+".txt") as f:
         print "showing grid of ghost "+str(ghost_index)
         grid = []
+        i=0
         for line in f.readlines():
             if line == "\n":
                 if len(grid) > 0:
                     pyplot.figure(figsize=(10,5)) #len(grid[0]), len(grid)))
                     pyplot.imshow(grid, cmap=colormap)
                     pyplot.savefig('grid_img.png')
+                    pyplot.savefig('./grid-animation/grid_img'+str(i)+'.png')
+                    i+=1
                     image = imageio.imread('grid_img.png')
                     frames.append(image)
                     #pyplot.show()
