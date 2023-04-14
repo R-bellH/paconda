@@ -497,7 +497,6 @@ class GridGhost(GhostAgent):
         if (not self.grid_free(start[0], start[1])) or (not self.grid_free(end[0], end[1])):
             # print('No path found between {} and {}'.format(start, end))
             return None
-        print "boo"
         if manhattanDistance(start, end) < 2:
             return end
         q = [end]
