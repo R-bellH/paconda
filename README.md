@@ -12,8 +12,8 @@ The project is based on the Pacman game and the simulator is provided by UC Berk
 
 we've implemented the following algorithms:
 1. PRM (Probabilistic Roadmap) with Dijkstra algorithm and A* algorithm
-2. RRT (Rapidly-exploring Random Tree) and RRT* with Dijkstra algorithm
-3. Grid based algorithms: BFS, A* ***(?)***
+2. RRT (Rapidly-exploring Random Tree) and RRT with fixed step
+3. Grid based algorithm: BFS
 
 all algorithms have been implemented from scratch and have the required infrastructure to work with heuristics.
 
@@ -43,7 +43,7 @@ lastly we've added a folder Media that contains all the gifs visualization that 
 ### Running the project
 ##### TL;DR
 1. run pacman.py
-2. run show_PRM.py
+2. run show_PRM.py (/RRT /Grid)
 
 ##### full walkthrough and explanation
 if you want to run the game with the default agents and map you can simply run pacman.py with no arguments
@@ -65,7 +65,7 @@ you can also customize these setting by adding arguments to the command line:
 - example: 'python pacman.py -p KeyboardAgent -g PRMGhost -l originalClassic -k 2'
 
 #### visualize the algorithms
-you can visualize each ghost by running the appropriate show file after you had a run of the game. for example to visualize the PRM algorithm you can run show_PRM.py 
+you can visualize each ghost by running the appropriate show file after you had a run of the game. for example to visualize the PRM algorithm you can run show_PRM.py
 this will result in the final planned path for the ghost to capture pacman. and its final map.
 alternatively you can run show_PRM.py *at the same time* you run the game which will show you the ghost current map and plan for the time you run the command.
 - note that show_Grid.py work a little differently as it produces gif instead of graph as we felt it better represent the algorithm work.
